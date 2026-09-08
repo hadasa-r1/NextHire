@@ -1,0 +1,112 @@
+/* RecruitFlow — styles des composants partagés. Importer après tokens.css. */
+
+.rf-heading {
+  font-family: var(--rf-font-display);
+  color: var(--rf-ink);
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+.rf-heading--1 { font-size: 32px; font-weight: 800; }
+.rf-heading--2 { font-size: 24px; }
+.rf-heading--3 { font-size: 18px; }
+
+.rf-text {
+  font-family: var(--rf-font-body);
+  color: var(--rf-ink-muted);
+  font-size: 15.5px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.rf-label {
+  display: block;
+  font-family: var(--rf-font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--rf-ink-muted);
+  margin-bottom: 6px;
+}
+
+.rf-field { display: flex; flex-direction: column; margin-bottom: 16px; }
+
+.rf-input,
+.rf-select,
+.rf-textarea {
+  font-family: var(--rf-font-body);
+  font-size: 15px;
+  color: var(--rf-ink);
+  background: var(--rf-paper-raised);
+  border: 1px solid var(--rf-line-strong);
+  border-radius: 4px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.rf-input:focus,
+.rf-select:focus,
+.rf-textarea:focus {
+  border-color: var(--rf-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rf-primary) 22%, transparent);
+}
+.rf-textarea { resize: vertical; min-height: 96px; font-family: var(--rf-font-body); }
+.rf-field-hint { font-size: 12.5px; color: var(--rf-ink-faint); margin-top: 5px; }
+
+.rf-button {
+  font-family: var(--rf-font-display);
+  font-size: 14.5px;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 9px 18px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: filter .15s ease, background .15s ease;
+}
+.rf-button:hover { filter: brightness(1.06); }
+.rf-button:active { filter: brightness(0.96); }
+.rf-button--primary { background: var(--rf-primary); color: white; }
+.rf-button--secondary { background: transparent; color: var(--rf-primary-ink); border-color: var(--rf-line-strong); }
+.rf-button--danger { background: transparent; color: #B5453A; border-color: #B5453A; }
+
+.rf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--rf-font-display);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+.rf-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.rf-badge--draft { color: var(--rf-status-draft); background: color-mix(in srgb, var(--rf-status-draft) 16%, transparent); }
+.rf-badge--pending { color: var(--rf-status-pending); background: color-mix(in srgb, var(--rf-status-pending) 18%, transparent); }
+.rf-badge--published { color: var(--rf-status-published); background: color-mix(in srgb, var(--rf-status-published) 16%, transparent); }
+.rf-badge--success { color: var(--rf-status-success); background: color-mix(in srgb, var(--rf-status-success) 16%, transparent); }
+
+.rf-card {
+  background: var(--rf-paper-raised);
+  border: 1px solid var(--rf-line);
+  border-radius: 4px;
+  box-shadow: var(--rf-shadow);
+  padding: 20px 22px;
+}
+
+.rf-table-wrap { overflow-x: auto; }
+.rf-table { width: 100%; border-collapse: collapse; font-family: var(--rf-font-body); font-size: 14.5px; }
+.rf-table th, .rf-table td { text-align: right; padding: 10px 12px; border-bottom: 1px solid var(--rf-line); }
+.rf-table thead th {
+  font-family: var(--rf-font-display);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--rf-ink-faint);
+  border-bottom: 1px solid var(--rf-line-strong);
+}
+.rf-table tbody tr:last-child td { border-bottom: none; }
+.rf-table td.num { font-variant-numeric: tabular-nums; }
+
+.rf-showcase { background: var(--rf-paper); color: var(--rf-ink); padding: 40px; direction: rtl; }
+.rf-showcase-section { max-width: 760px; margin: 0 auto 48px; }
+.rf-showcase-section + .rf-showcase-section { border-top: 1px solid var(--rf-line); padding-top: 40px; }
+.rf-showcase-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 14px; }

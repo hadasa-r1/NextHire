@@ -4,9 +4,20 @@ import Repository = require("../repository/repository");
 
 type ControllerHandler = RequestHandler<Request["params"], unknown, unknown>;
 
+interface GenericControllerOptions<T> {
+  // Query params accepted as exact-match filters on GET /. Values are read as
+  // strings only; arrays and nested objects are ignored, so query operators
+  // such as $ne cannot be injected through the query string.
+  readonly filterableFields?: readonly (keyof T & string)[];
+  // Reference fields a caller may expand with ?populate=field,field. Only list
+  // fields whose target model is registered in this service.
+  readonly populatableFields?: readonly (keyof T & string)[];
+}
+
 class GenericController<T extends object> {
   constructor(
-    private readonly repository: Pick<Repository<T>, keyof Repository<T>>
+    private readonly repository: Pick<Repository<T>, keyof Repository<T>>,
+    private readonly options: GenericControllerOptions<T> = {}
   ) {}
 
   // Arrow functions keep this.repository available when passed to Express routes.
@@ -22,8 +33,11 @@ class GenericController<T extends object> {
     res.status(201).json(document);
   };
 
-  readonly getAll: ControllerHandler = async (_req, res) => {
-    const documents = await this.repository.getAll();
+  readonly getAll: ControllerHandler = async (req, res) => {
+    const documents = await this.repository.getAll(
+      this.buildFilter(req.query),
+      this.buildPopulate(req.query)
+    );
     res.status(200).json(documents);
   };
 
@@ -68,6 +82,32 @@ class GenericController<T extends object> {
     await this.repository.remove(id);
     res.status(204).end();
   };
+
+  private buildFilter(query: Request["query"]): mongoose.QueryFilter<T> {
+    const filter: Partial<Record<keyof T & string, string>> = {};
+
+    for (const field of this.options.filterableFields ?? []) {
+      const value = query[field];
+      if (typeof value === "string" && value !== "") {
+        filter[field] = value;
+      }
+    }
+
+    // Mongoose casts the string values to each field's type (ObjectId, Boolean,
+    // …) and surfaces a CastError as a 400 through the error handler.
+    return filter as mongoose.QueryFilter<T>;
+  }
+
+  private buildPopulate(query: Request["query"]): mongoose.PopulateOptions[] {
+    const requested = query.populate;
+    const names = typeof requested === "string" ? requested.split(",") : [];
+    const allowed = new Set<string>(this.options.populatableFields ?? []);
+
+    return names
+      .map((name) => name.trim())
+      .filter((name) => allowed.has(name))
+      .map((path) => ({ path }));
+  }
 
   private readId(req: Request, res: Response): string | undefined {
     const id = req.params.id;

@@ -40,5 +40,8 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-  }
+  },
+  // This is the Group B backend (CommonJS). The shared design-system/ folder and
+  // any frontend under client/ are React/ESM and carry their own tsconfig.
+  "exclude": ["node_modules", "design-system", "client"]
 }

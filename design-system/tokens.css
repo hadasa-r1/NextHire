@@ -1,0 +1,68 @@
+/*
+  RecruitFlow — shared design tokens.
+  Same values as the published plan, so the 3 groups (A, B, C)
+  produce visually consistent screens.
+  Import once, at the top of the app (e.g. main.tsx).
+*/
+
+:root {
+  --rf-paper: #EEF1F4;
+  --rf-paper-raised: #FFFFFF;
+  --rf-ink: #1B2430;
+  --rf-ink-muted: #4B5566;
+  --rf-ink-faint: #7C8798;
+  --rf-primary: #1F5FA8;
+  --rf-primary-ink: #0F3D73;
+  --rf-accent: #B9791F;
+  --rf-line: rgba(27, 36, 48, 0.14);
+  --rf-line-strong: rgba(27, 36, 48, 0.28);
+  --rf-shadow: 0 1px 2px rgba(20, 26, 36, 0.04), 0 8px 24px -12px rgba(20, 26, 36, 0.18);
+
+  /* Pipeline statuses (Group A) — semantic color, kept separate from the accent */
+  --rf-status-draft: #7C8798;
+  --rf-status-pending: #B9791F;
+  --rf-status-published: #1F5FA8;
+  --rf-status-success: #2E7D5E;
+
+  --rf-font-display: "Archivo", "Segoe UI", Arial, sans-serif;
+  --rf-font-body: "Source Serif 4", Georgia, serif;
+  --rf-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --rf-paper: #111620;
+    --rf-paper-raised: #171E2A;
+    --rf-ink: #E7EAF0;
+    --rf-ink-muted: #A2ADBE;
+    --rf-ink-faint: #6E7A8C;
+    --rf-primary: #6FA8E0;
+    --rf-primary-ink: #BBD8F5;
+    --rf-accent: #E0AE5C;
+    --rf-line: rgba(231, 234, 240, 0.14);
+    --rf-line-strong: rgba(231, 234, 240, 0.26);
+    --rf-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    --rf-status-draft: #8A93A3;
+    --rf-status-pending: #E0AE5C;
+    --rf-status-published: #6FA8E0;
+    --rf-status-success: #4FAE85;
+  }
+}
+
+:root[data-theme="dark"] {
+  --rf-paper: #111620;
+  --rf-paper-raised: #171E2A;
+  --rf-ink: #E7EAF0;
+  --rf-ink-muted: #A2ADBE;
+  --rf-ink-faint: #6E7A8C;
+  --rf-primary: #6FA8E0;
+  --rf-primary-ink: #BBD8F5;
+  --rf-accent: #E0AE5C;
+  --rf-line: rgba(231, 234, 240, 0.14);
+  --rf-line-strong: rgba(231, 234, 240, 0.26);
+  --rf-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  --rf-status-draft: #8A93A3;
+  --rf-status-pending: #E0AE5C;
+  --rf-status-published: #6FA8E0;
+  --rf-status-success: #4FAE85;
+}

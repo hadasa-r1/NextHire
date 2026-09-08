@@ -7,8 +7,11 @@ class Repository<T> {
     return this.model.create(data);
   }
 
-  async getAll(): Promise<mongoose.HydratedDocument<T>[]> {
-    return this.model.find().exec();
+  async getAll(
+    filter: mongoose.QueryFilter<T> = {},
+    populate: mongoose.PopulateOptions[] = []
+  ): Promise<mongoose.HydratedDocument<T>[]> {
+    return this.model.find(filter).populate(populate).exec();
   }
 
   async getById(id: string): Promise<mongoose.HydratedDocument<T> | null> {

@@ -8,13 +8,15 @@ import GenericController = require("../src/controllers/generic.controller");
 import createGenericRoutes = require("../src/routes/generic.routes");
 import Repository = require("../src/repository/repository");
 import Candidate = require("../src/models/candidate.model");
+import Application = require("../src/models/application.model");
 import EvaluationScore = require("../src/models/evaluation-score.model");
 
 type PublicRepository<T> = Pick<Repository<T>, keyof Repository<T>>;
 
 async function startTestServer<T extends object>(
   t: TestContext,
-  overrides: Partial<PublicRepository<T>>
+  overrides: Partial<PublicRepository<T>>,
+  options?: ConstructorParameters<typeof GenericController<T>>[1]
 ) {
   const unexpectedCall = async (): Promise<never> => {
     throw new Error("Unexpected repository call");
@@ -27,7 +29,7 @@ async function startTestServer<T extends object>(
     remove: unexpectedCall,
     ...overrides,
   };
-  const controller = new GenericController<T>(repository);
+  const controller = new GenericController<T>(repository, options);
   const errors: unknown[] = [];
   const app = express();
 
@@ -203,6 +205,44 @@ test("An empty object is delegated so the model can validate its own fields", as
     assert.equal(response.status, method === "POST" ? 201 : 200);
   }
   assert.deepEqual(errors, []);
+});
+
+test("getAll passes only allow-listed query params as an exact-match filter", async (t) => {
+  const calls: Parameters<PublicRepository<Application>["getAll"]>[] = [];
+  const { url, errors } = await startTestServer<Application>(
+    t,
+    { getAll: async (...args) => { calls.push(args); return []; } },
+    { filterableFields: ["positionId", "companyId"] }
+  );
+
+  await fetch(`${url}/records?positionId=507f1f77bcf86cd799439011&companyId=&role=admin&positionId[$ne]=x`);
+
+  assert.deepEqual(calls, [[{ positionId: "507f1f77bcf86cd799439011" }, []]]);
+  assert.deepEqual(errors, []);
+});
+
+test("getAll expands only allow-listed populate paths", async (t) => {
+  const calls: Parameters<PublicRepository<Application>["getAll"]>[] = [];
+  const { url } = await startTestServer<Application>(
+    t,
+    { getAll: async (...args) => { calls.push(args); return []; } },
+    { populatableFields: ["candidateId"] }
+  );
+
+  await fetch(`${url}/records?populate=candidateId,companyId`);
+
+  assert.deepEqual(calls, [[{}, [{ path: "candidateId" }]]]);
+});
+
+test("getAll without controller options keeps its unfiltered behaviour", async (t) => {
+  const calls: unknown[][] = [];
+  const { url } = await startTestServer<Candidate>(t, {
+    getAll: async (...args) => { calls.push(args); return []; },
+  });
+
+  await fetch(`${url}/records?idNumber=000000001`);
+
+  assert.deepEqual(calls, [[{}, []]]);
 });
 
 test("Express forwards repository failures from all five handlers to error middleware", async (t) => {

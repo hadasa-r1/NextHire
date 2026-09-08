@@ -13,17 +13,34 @@ router.use(
 
 router.use(
   "/api/applications",
-  createGenericRoutes(new GenericController(repositories.applicationRepository))
+  createGenericRoutes(
+    new GenericController(repositories.applicationRepository, {
+      // Lets the internal candidate pool screen request one position's
+      // applications: GET /api/applications?positionId=<id>&populate=candidateId
+      filterableFields: ["positionId", "candidateId", "companyId"],
+      // Only Candidate is registered here; Company and Position belong to other
+      // groups, so they stay bare ObjectIds until those models exist.
+      populatableFields: ["candidateId"],
+    })
+  )
 );
 
 router.use(
   "/api/evaluation-scores",
-  createGenericRoutes(new GenericController(repositories.evaluationScoreRepository))
+  createGenericRoutes(
+    new GenericController(repositories.evaluationScoreRepository, {
+      filterableFields: ["applicationId", "criterionId", "interviewerId"],
+    })
+  )
 );
 
 router.use(
   "/api/tender-summaries",
-  createGenericRoutes(new GenericController(repositories.tenderSummaryRepository))
+  createGenericRoutes(
+    new GenericController(repositories.tenderSummaryRepository, {
+      filterableFields: ["applicationId"],
+    })
+  )
 );
 
 export = router;

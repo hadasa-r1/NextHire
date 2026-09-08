@@ -1,0 +1,31 @@
+{
+  // Group B frontend. Kept in sync with the backend tsconfig where it makes
+  // sense (strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes,
+  // verbatimModuleSyntax) so both halves of the repo lint the same way.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["vite/client", "node"],
+    "jsx": "react-jsx",
+
+    "paths": {
+      "@ds/*": ["../design-system/*"],
+      "@/*": ["./src/*"]
+    },
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "vite.config.ts", "../design-system"]
+}

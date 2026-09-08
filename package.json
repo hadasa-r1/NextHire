@@ -17,6 +17,10 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "//": "The backend lives here at the root; the Group B frontend is the 'client' workspace. Both share the design-system/ folder, so client dependencies (React, etc.) hoist to the root node_modules where design-system/*.tsx can resolve them.",
+  "workspaces": [
+    "client"
+  ],
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
