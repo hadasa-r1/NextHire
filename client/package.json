@@ -1,26 +1,28 @@
 {
-  "name": "nexthire-client",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "description": "NextHire — Group B frontend. Screen: Internal Candidate Pool (מאגר מועמדים פנימי).",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.3"
-  },
-  "devDependencies": {
-    "@types/node": "^26.5.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
-    "@vitejs/plugin-react": "^6.1.1",
-    "typescript": "^7.0.2",
-    "vite": "^8.2.2"
-  }
+    "name":  "nexthire-client",
+    "private":  true,
+    "version":  "0.0.0",
+    "type":  "module",
+    "description":  "NextHire — Group B frontend. Screen: Internal Candidate Pool (מאגר מועמדים פנימי).",
+    "scripts":  {
+                    "dev":  "vite",
+                    "build":  "tsc --noEmit \u0026\u0026 vite build",
+                    "preview":  "vite preview",
+                    "typecheck":  "tsc --noEmit",
+                    "test":  "tsx --tsconfig tsconfig.json --test tests/candidates.test.tsx tests/applications.test.tsx tests/evaluations-summary.test.tsx tests/demo.test.tsx tests/resume-upload.test.ts"
+                },
+    "dependencies":  {
+                         "react":  "^19.2.8",
+                         "react-dom":  "^19.2.8",
+                         "react-router-dom":  "^7.18.3"
+                     },
+    "devDependencies":  {
+                            "@types/node":  "^26.5.0",
+                            "@types/react":  "^19.2.18",
+                            "@types/react-dom":  "^19.2.7",
+                            "@vitejs/plugin-react":  "^6.1.1",
+                            "typescript":  "^7.0.2",
+                            "vite":  "^8.2.2",
+                            "tsx":  "^4.23.13"
+                        }
 }

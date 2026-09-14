@@ -1,88 +1,137 @@
-# NextHire — client (Group B)
+# NEXTHIRE — ממשק קבוצה ב׳
 
-React + TypeScript + Vite frontend for Group B. Currently one screen:
+ממשק React ו־TypeScript, הבנוי על מערכת העיצוב המשותפת בלבד.
 
-**Internal Candidate Pool** (מאגר מועמדים פנימי) — system page 13. All candidates
-who applied to a single position, for a recruiter/referent to review and act on.
+## הפעלה
 
-## Run
-
-From the repo root (npm workspaces — one install covers backend + client):
+מתיקיית הפרויקט הראשית, המכילה את `server` ואת `client`:
 
 ```bash
-npm install
+npm ci
+npm run dev:server
 ```
 
-Then, in two terminals:
+בטרמינל נוסף מאותה תיקייה:
 
 ```bash
-npm start            # repo root — Group B API on http://127.0.0.1:3000
-npm run dev -w client   # Vite dev server on http://localhost:5173
+npm run dev:client
 ```
 
-Vite proxies `/api/*` to the API (see `vite.config.ts`), so no CORS setup is
-needed in dev.
+פתחו את הכתובת ש־Vite מציג, בדרך כלל `http://localhost:5173`. השרת משתמש ב־`server/.env`. Vite מעביר בקשות `/api` אל `http://127.0.0.1:3000`.
 
-Routes:
-- `/` — home / landing page
-- `/candidates` — global list of every candidate in the system
-- `/positions/<positionId>/candidate-pool` — candidate pool for one position
-  (`<positionId>` is an existing `Application`'s `positionId`; optional header
-  params `?title=<שם המשרה>&closed=1`)
-- `/design-system` — shared component gallery
+## התנסות מקומית
 
-Scripts: `dev`, `build` (`tsc --noEmit && vite build`), `preview`, `typecheck`.
+במחשב הפיתוח הזה מופעל מצב הדגמה באמצעות `VITE_LOCAL_DEMO=true` בקובץ `client/.env.local`, המוחרג מ־Git. במחשב חדש אפשר ליצור את הקובץ עם אותה שורה ולהפעיל מחדש את Vite. המצב פעיל רק בשרת הפיתוח ובכתובת localhost או כתובת loopback; הוא אינו נכלל בבניית production.
 
-## Layout
+לאחר הפעלת השרת והלקוח, פתחו `http://localhost:5173/candidates` ובחרו **הוספת מועמד**. אפשר לשמור, לצפות ולערוך; מתוך פרטי מועמד אפשר לבחור **הגשה למשרה**, לבחור משרה וחברה להדגמה ולבחור קובץ קורות חיים מהמחשב. השמירה משתמשת ב־API ובמסד המקומי האמיתיים. המשרות והחברות הן אפשרויות להדגמה בלבד, עם מזהים שאין מאחוריהם רשומות של קבוצה א׳; אין ליצור באמצעותן נתוני אמת.
 
-```
-src/
-  api/client.ts                       tiny read-only fetch wrapper + ApiError
-  types/domain.ts                     mirrors ../src/models/*.ts over the wire
-  features/home/HomePage.tsx          landing page ("/")
-  features/candidates/                global candidates list ("/candidates")
-    CandidatesPage.tsx               route page: header, search, states, layout
-    CandidatesTable.tsx              presentational table only
-    useCandidates.ts                 data hook: GET /api/candidates
-    filter.ts                        client-side name / ID search
-  features/candidate-pool/           candidate pool for one position
-    CandidatePoolPage.tsx            route page: header, search, states, layout
-    CandidatePoolTable.tsx           presentational table only
-    useApplicationsForPosition.ts    data hook: fetch + merge → PoolRow[]
-    poolRow.ts                       PoolRow view-model + builder
-    stage.ts                         stage labels, threshold badge, action mapping
-    filter.ts                        client-side name / ID search
-  router.tsx                         route table
-```
+ההרשאות המקומיות עוברות דרך אותם Providers ובדיקות resource/actions של המסכים. להתנסות בשמירת הערכות ובפעולות מעבר סף ודחייה נדרש גם `NEXTHIRE_LOCAL_WORKFLOW=true` ב־`server/.env` והפעלה מחדש של השרת. ההגדרה כבר קיימת במחשב הזה. משתמש המראיין וקריטריוני המשרה הם נתוני הדגמה; השמירה מתבצעת במסד המקומי. חישוב המפ״ל והחלטות הזכייה עדיין ממתינים לנוסחאות ולכללים החסרים. לביטול מצב ההדגמה הסירו את שתי ההגדרות והפעילו מחדש את השרת והלקוח.
 
-The design system is consumed from `../design-system` via the `@ds/*` alias.
-It is never modified here.
+הלוגו בכותרת המסכים הוא העתק ללא שינוי של `assets/nexthire-logo.png`, המוגש מתוך `client/public/nexthire-logo.png` ונכלל אוטומטית בבנייה.
 
-## Backend endpoints used
+## מה קיים
 
-| Call | Purpose |
+| נתיב | תפקיד |
 | --- | --- |
-| `GET /api/applications?positionId=<id>&populate=candidateId` | the pool, with candidate joined |
-| `GET /api/tender-summaries` | `finalWeightedScore` per application |
-| `GET /api/evaluation-scores` | fallback score (`computedScore`, latest by `evaluatedAt`) |
+| `/` | דף הבית |
+| `/candidates` | רשימת מועמדים, חיפוש בשם/מספר זהות ופעולות |
+| `/candidates/new` | הוספת מועמד |
+| `/candidates/:candidateId/edit` | עריכת מועמד באותו CandidateForm |
+| `/candidates/:candidateId` | פרטי המועמד וכל ההגשות שלו |
+| `/applications` | רשימת הגשות לפי משרה |
+| `/applications/new` | הוספת הגשה |
+| `/applications/:applicationId/edit` | עריכת הגשה באותו ApplicationForm |
+| `/applications/:applicationId` | פרטי הגשה, מידע תהליך והערכות |
+| `/applications/:applicationId/evaluation` | טופס הערכה לפי הקריטריונים של המשרה |
+| `/positions/:positionId/tender-summary` | מפ״ל למשרה ופירוט ההערכות |
+| `/positions/:positionId/candidate-pool` | כניסה ישנה שמפנה לרשימת ההגשות הפעילה של אותה משרה |
+| `/design-system` | הדגמת הרכיבים המשותפים |
 
-The `positionId` filter and `populate` support were added to the shared generic
-controller on this branch (`src/controllers/generic.controller.ts`).
+טופס המועמד כולל רק `fullName`, `idNumber`, `phone`, `email`. רק `idNumber` חובה והוא אינו ייחודי. אין סטטוס למועמד.
 
-## Known gaps / stubs (see the top-level task summary)
+טבלת ההגשות במסך המועמד מסוננת לפי `candidateId`. כפתורי הגשה למשרה וצפייה בהגשה מחוברים למסכים החדשים; הגשה מתוך פרטי מועמד מעבירה את המועמד לבחירה בטופס. שמות משרות וחברות ממתינים לממשק קבוצה א׳; בינתיים מוצגים מזהים עם כותרות מתאימות.
 
-- **Company name** — no Company model on the Group B backend. The "חברה" column
-  shows a shortened `companyId` in muted monospace. Wire up once Group A/C expose
-  a companies API (`poolRow.ts` → `companyLabel`).
-- **`currentStage`** — not implemented on the backend (explicit TODO in
-  `src/models/application.model.ts`). "שלב נוכחי" shows "—" and every action
-  falls back to "צפייה". `stage.ts` has the full label/action mapping ready;
-  point `readStage()` at the real field when it lands.
-- **Position title / "submission window closed"** — no Position model reachable.
-  Taken from `?title=` / `?closed=1` query params for now.
-- **Action buttons** — `handleAction` in `CandidatePoolPage.tsx` is a `console.warn`
-  stub. Wire to the real detail / scheduling screens when they exist.
-- **Score fetch** — no bulk "scores for these applications" endpoint, so both
-  score collections are fetched whole and indexed client-side. Fine for
-  course-project volumes; revisit with an `applicationId in (...)` filter if a
-  position ever has many hundreds of applications.
+## מסכי ההגשות
+
+`ApplicationForm` משותף להוספה ולעריכה. הוא שולח רק `positionId`, `candidateId`, `companyId`, `hourlyRateBid`, `resumeUrl`. קובץ קורות החיים חובה בהוספה; בעריכה ניתן להשאיר את הקובץ הקיים. שדות שלא מולאו בהוספה אינם נשלחים, בלי `null` או ברירות מחדל. אפס בתעריף נשמר כאפס. הקישור חייב להיות כתובת HTTP או HTTPS מלאה; פתיחת המסמך אינה מאפשרת קישור להרצת קוד או לקובץ מקומי.
+
+המשרות והחברות מגיעות דרך `ReferenceDataProvider`, שאליו יש לחבר `loadOptions` לאחר קבלת הממשק מקבוצה א׳. לא הומצאו endpoints ולא נוצרו מודלים של קבוצה א׳. במצב רגיל, עד לחיבור מוצגת הודעה מתאימה. במצב ההדגמה המקומי בלבד מוצגות אפשרויות שמסומנות כהדגמה. פרטים בחוזה שב־`src/integrations/README.md`.
+
+ברשימת ההגשות נבחרת משרה; השרת מסנן את התוצאות לפי `positionId`. פרטי מועמד נשלפים באמצעות populate רק אם קיימת הרשאת Candidate READ. מסך פרטי ההגשה מציג הערכות שמסוננות לפי `applicationId`, בהרשאת EvaluationScore READ.
+
+שלב התהליך נשאר לא מוגדר. סימון עבר־סף ודחייה פעילים דרך פקודות שרת בהרשאת Application WRITE. דחייה מחייבת סיבה, ואינה משנה בדיעבד את תוצאת בדיקת הסף. כפתורי הזנת הערכה וצפייה במפ״ל מחוברים למסכים המתאימים. סיבת דחייה קיימת מוצגת כפי שנשמרה; לא שונה אוטומטית שום שדה תהליך.
+
+מחיקת קשר או תעריף שכבר נשמרו אינה מוגדרת בחוזה הנוכחי, ולכן הטופס מסביר שהפעולה אינה נתמכת במקום לשלוח null או להתעלם מהמחיקה. אפשר לעדכן לערך חלופי. יש להסכים על דרך למחיקת ערכים לפני הרחבת האפשרות הזאת.
+## הערכות ומפ״ל
+
+מסך ההערכה קורא את קריטריוני המשרה דרך `EvaluationProvider`. הקריטריונים הם references מקבוצה א׳, ללא יצירת מודלים שלה. `type` הוא BOOLEAN או SCORED; ל־SCORED יש `scoringMethod` של RATIO או DIRECT.
+
+BOOLEAN מוצג כבחירת עבר/לא עבר ונשמר כבוליאני. RATIO מחושב כ־actualValue / targetValue × 100; DIRECT שומר את הציון הישיר. התצוגה מקצרת לשתי ספרות אחרי הנקודה, אך הערך הנשמר אינו מעוגל או מוגבל אוטומטית ל־100. לכל קריטריון אפשר להזין הערות. אין שמירת טיוטה או שדה שיבוץ מראיין.
+
+הטופס מחובר לשירות שמירה שמחשב שוב את הניקוד בשרת, קובע interviewerId ממשתמש שהשרת זיהה ו־evaluatedAt בזמן השמירה, ובודק שהקריטריון שייך למשרת ההגשה. שמירה חוזרת מעדכנת את הערכת אותו מראיין לאותו קריטריון. רק קריטריונים ששונו נשלחים. כל קריטריון נשמר בנפרד; בכשל מוצג כמה נשמרו, וניסיון חוזר מעדכן אותם בלי ליצור כפילויות. הרשאת EvaluationScore WRITE מספיקה לטעינת הקריטריונים והערכים של המראיין עצמו, בלי לדרוש הרשאות קריאה כלליות להגשות או לקריטריונים.
+
+המפ״ל מציג את כל הגשות המשרה ואת TenderSummary המקושר לכל אחת, עם דירוג, מועמד, איכות, מחיר, ציון משוקלל וזכייה. הוא שומר על דירוג שכבר נשמר, ולא מחשב דירוג מהציונים בדפדפן. כשאין סיכום מוצגים תאים ריקים; ציון הערכה בודדת אינו משמש כתחליף לציון מפ״ל. השליפות מסוננות להגשות של המשרה ובמקביליות מוגבלת.
+
+צפייה בפירוט פותחת אזור עם ציוני הסיכום והערכות ההגשה, בכפוף להרשאה. ניתן לפתוח awardLetterUrl קיים; יצירת המכתב שייכת לקבוצה ג׳. חישוב, אישור זוכה, ביטול זכייה וקידום בדירוג נשארו חסומים עד לאישור נוסחאות, כללי החלטה והרשאות פעולה.
+
+חוזה החיבור מפורט ב־[תיעוד שילוב ההערכות](src/integrations/EVALUATIONS.md). הפרויקט עדיין אינו מחובר בפועל למשתמש והרשאות קבוצה ג׳ או לממשקי קבוצה א׳, ובמצב רגיל המסכים המוגנים שומרים על החסימה הקיימת.
+## חיבור הרשאות — נדרש להפעיל את המסכים המוגנים
+
+אין כרגע בפרויקט ממשק של קבוצה ג׳ שמחזיר משתמש מחובר והרשאות. במצב רגיל `AuthProvider` אינו מקבל עדיין `loadSession`, והמסכים המוגנים מציגים הודעה שההרשאות טרם התקבלו. במצב ההדגמה המקומי מחובר loader מקומי שמאפשר התנסות. הם אינם שולפים נתונים או מאפשרים כתיבה אוטומטית.
+
+לאחר שקבוצה ג׳ תמסור את החוזה, יש להעביר ל־`AuthProvider` ב־`src/main.tsx` פונקציית `loadSession` שמבצעת את החיבור המאושר. ראו `src/auth/README.md`.
+
+נתיבי workflow החדשים אוכפים הרשאות באמצעות מתאם שרת מהימן. מתאם ההדגמה פועל רק בפיתוח, בהפעלה מפורשת ובחיבור loopback. חיבור המשתמשים האמיתי של קבוצה ג׳ ואכיפת ההרשאות בנתיבי ה־CRUD הגנריים עדיין חסרים; הסתרת כפתור אינה אכיפה בשרת.
+
+## מבנה משותף
+
+- `src/shared/PageLayout.tsx` — כותרת, ניווט, כותרת מסמך ופריסת העמוד.
+- `src/shared/PageState.tsx` — טעינה, שגיאה ומצב ריק.
+- `src/shared/useApiResource.ts` — שליפה עם ביטול בקשות וטיפול במצבים.
+- `src/shared/layout.css` — פריסה וריווח בלבד, כולל מסכים צרים.
+- `src/auth/` — חוזה החיבור ובדיקת הרשאות לפי resource/actions, ללא role קשיח.
+- `src/api/client.ts` — תעבורת GET/POST/PATCH/DELETE משותפת לכל הישויות.
+- `src/features/candidates/` — הרשימה, הטופס המשותף והפרטים.
+- `src/design-system/` — הרכיבים המשותפים המקוריים.
+
+`tokens.css` מיובא פעם אחת ב־`main.tsx`, ומיד אחריו `components.css`. דף ההדגמה משתמש בייבוא הראשי. אין ספריית עיצוב נוספת.
+
+`currentStage` נשאר TODO גם בצד הלקוח, עד לאישור סוגו. לא נגזרים שלבים מציונים או מפרמטרים בכתובת.
+
+## בדיקות
+
+מהשורש:
+
+```bash
+npm run typecheck
+npm test -w client
+npm run build
+npm test
+```
+
+בדיקות הלקוח מאמתות חסימת הרשאות, שדות הטופס, שמירת אפסים מובילים ותעבורת API. הן משתמשות בנתוני בדיקה בתוך הבדיקות בלבד. בדיקות השרת דורשות MongoDB פעיל ומשתמשות במסדי בדיקה זמניים.
+## בדיקות תקינות של שדות
+
+הכללים המשותפים נמצאים ב־`server/src/validation/field-rules.mts`. זהו קובץ TypeScript טהור ללא גישה למסד, שמיובא גם בטפסים דרך `@validation` וגם ב־Schemas של Mongoose. ה־Repository הגנרי מפעיל `runValidators` גם בעדכון.
+
+- תעודת זהות: בדיקת פורמט של תשע ספרות בלבד, ללא חישוב ספרת ביקורת. השדה נשאר חובה ולא ייחודי; אפסים בתחילת המספר נשמרים. אותיות, מקפים ומספר באורך שונה אינם מתקבלים. אין הוספת אפסים או שינוי אוטומטי של מספר שמור.
+- טלפון: בדיקה בסיסית של 9–10 ספרות, ללא רשימת קידומות מוגבלת. אפשר להזין רווחים, מקפים וסוגריים, וגם קידומת ‎+972 עם או בלי האפס המקומי. העיצוב שהוקלד נשמר; השדה נשאר רשות ואפשר לרוקן אותו. אותיות, שלוחות ומספרים קצרים או ארוכים מדי אינם מתקבלים.
+- דוא״ל: פורמט כתובת מקובל בטופס אינטרנט, כולל סימן + בשם התיבה. אין אימות מסירה.
+- קישורים: כתובת HTTP/HTTPS מלאה, ללא פרטי התחברות. אין דרישה לסיומת PDF, משום שגם קישורי שיתוף תקינים מותרים.
+- תעריף: מספר סופי שאינו שלילי; אפס מותר. תקרת המשרה תיבדק כשיחוברו נתוני קבוצה א׳.
+- actualValue: בוליאני או מספר סופי בלבד גם ב־Mixed. ציונים מספריים חייבים להיות סופיים; לא הומצא טווח ניקוד או משקל. דירוג, אם מוזן, הוא מספר שלם חיובי.
+- שדות רשות נשארו רשות. שמות אינם מוגבלים לשפה מסוימת או למספר מילים.
+
+אלו בדיקות פורמט, ולא אימות זהות או בעלות על טלפון/דוא״ל. הן נוספו לפי בקשת המשתמשת; מסמך המרצה אינו מפרט אותן.
+
+נתוני הדוגמה המסומנים בשם ״(בדיקה)״ ובכתובות nexthire-demo-1@example.com עד nexthire-demo-8@example.com ניתנים לזיהוי בנפרד מנתוני משתמשים. מספרי הזהות והטלפון המקוריים הלא תקינים תוקנו לפורמט תקין במסגרת תיקון נתוני ההדגמה; ערכים שכבר נערכו בידי המשתמשת נשמרו. הנתונים סינתטיים ואינם מיועדים ליצירת קשר.
+
+## בחירת קורות חיים מהמחשב
+
+ב־ApplicationForm נבחר כעת קובץ מהמחשב במקום להקליד כתובת. בהוספה הקובץ חובה; בעריכה ניתן להשאיר את הקובץ הקיים או לבחור חלופה. PDF ו־DOCX מותרים עד 10MB. הקובץ מועלה רק בלחיצה על שמירה ולא בעת הבחירה או הביטול.
+
+שרת הפיתוח מקבל את תוכן הקובץ ב־POST /api/resumes, בודק גודל, סיומת וחתימת PDF או מבנה חבילת DOCX, ושומר אותו בשם אקראי ב־server/uploads/resumes. התיקייה מוחרגת מ־Git. GET /api/resumes/:name מאפשר לפתוח את הקובץ. מספרי השדות במודל לא השתנו: ב־Application.resumeUrl נשמר הקישור לקובץ; resumeFile הוא מצב של הטופס בלבד.
+
+זוהי תשתית העלאה מקומית עד לחיבור שירות האחסון וההרשאות של קבוצה ג׳. לא נוצר מודל Document. הנתיבים אינם מופעלים ב־NODE_ENV=production; בחיבור הסופי צריך להחליף את מתאם ההעלאה ולחבר הרשאות גם להורדת קבצים.
+
+כישלון בהעלאה מונע שמירת Application. אם ההעלאה הצליחה ושמירת ההגשה נכשלה, ניסיון חוזר באותו טופס משתמש בקובץ שכבר הועלה. קבצים קודמים אינם נמחקים בהחלפה; ניקוי קבצים שלא שויכו וגרסאות יוסדר עם שירות המסמכים של קבוצה ג׳. הקישורים המקומיים תלויים בכתובת שרת הפיתוח.

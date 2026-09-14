@@ -1,4 +1,4 @@
-// Mirrors the Group B backend models in ../../src/models/*.ts.
+// Mirrors the Group B backend models in ../../../server/src/models/*.ts.
 //
 // Over the wire: ObjectId fields are 24-char hex strings, `_id` is always
 // present on stored documents, and Date fields arrive as ISO strings. Keep this
@@ -22,16 +22,12 @@ export interface Application {
   passedThreshold?: boolean;
   rejectionReason?: string;
 
-  // NOTE: `currentStage` is in the approved data model but is NOT implemented on
-  // the backend yet — it is an explicit TODO in src/models/application.model.ts,
-  // deferred by Group B until its type is decided. The API never sends it today.
-  // Typed here so the stub in ../features/candidate-pool/stage.ts stays honest.
-  currentStage?: string;
+  // TODO: currentStage is not implemented until its type is approved.
 }
 
 // Shape of an Application returned with `?populate=candidateId`.
 export interface ApplicationWithCandidate extends Omit<Application, "candidateId"> {
-  candidateId?: Candidate | string;
+  candidateId?: Candidate | string | null;
 }
 
 export interface EvaluationScore {

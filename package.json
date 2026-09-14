@@ -1,37 +1,21 @@
 {
   "name": "nexthire-group-b",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts",
-    "typecheck": "tsc --noEmit",
-    "db:check": "tsx src/scripts/check-database.ts",
-    "test": "tsx --test tests/repository.test.ts tests/generic.controller.test.ts tests/routes.test.ts tests/app.test.ts",
-    "test:controller": "tsx --test tests/generic.controller.test.ts",
-    "test:routes": "tsx --test tests/generic.controller.test.ts tests/routes.test.ts",
-    "test:app": "tsx --test tests/app.test.ts"
-  },
-  "keywords": [],
-  "author": "",
+  "private": true,
+  "description": "NEXTHIRE Group B server and client workspaces.",
   "license": "ISC",
-  "type": "commonjs",
-  "//": "The backend lives here at the root; the Group B frontend is the 'client' workspace. Both share the design-system/ folder, so client dependencies (React, etc.) hoist to the root node_modules where design-system/*.tsx can resolve them.",
-  "workspaces": [
-    "client"
-  ],
-  "dependencies": {
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "mongoose": "^9.9.5"
-  },
-  "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "^26.4.1",
-    "tsx": "^4.23.13",
-    "typescript": "^7.0.2"
+  "workspaces": ["server", "client"],
+  "scripts": {
+    "dev": "npm run dev -w server",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "start": "npm start -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
+    "build": "npm run build -w client",
+    "db:check": "npm run db:check -w server",
+    "test": "npm test -w server",
+    "test:controller": "npm run test:controller -w server",
+    "test:routes": "npm run test:routes -w server",
+    "test:app": "npm run test:app -w server"
   }
 }

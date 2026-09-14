@@ -11,7 +11,11 @@
     "jsx": "react-jsx",
 
     "paths": {
-      "@ds/*": ["../design-system/*"],
+      "@scoring": ["../server/src/validation/scoring.mts"],
+      "@evaluation-demo": ["../server/src/demo/evaluation-data.mts"],
+      "@resume-policy": ["../server/src/validation/resume-file.mts"],
+      "@validation": ["../server/src/validation/field-rules.mts"],
+      "@ds/*": ["./src/design-system/*"],
       "@/*": ["./src/*"]
     },
 
@@ -27,5 +31,5 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["src", "vite.config.ts", "../design-system"]
+  "include": ["src", "tests", "vite.config.ts"]
 }

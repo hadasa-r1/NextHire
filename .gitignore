@@ -4,3 +4,5 @@ dist/
 .env.*
 !.env.example
 /Microsoft/Windows/PowerShell/ModuleAnalysisCache
+
+/server/uploads/

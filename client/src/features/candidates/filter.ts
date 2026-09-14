@@ -1,8 +1,7 @@
 import type { Candidate } from "@/types/domain";
 
 // Client-side search over the already-loaded candidates. Matches full name or ID
-// number, case-insensitively. Same approach as candidate-pool/filter.ts, scoped
-// to the Candidate shape (fullName is optional).
+// number, case-insensitively. Candidate.fullName is optional.
 export function filterCandidates(
   candidates: readonly Candidate[],
   query: string,

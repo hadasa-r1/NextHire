@@ -1,0 +1,55 @@
+import mongoose = require("mongoose");
+import rules = require("../validation/field-rules.mjs");
+
+interface Application {
+  positionId?: mongoose.Types.ObjectId;
+  candidateId?: mongoose.Types.ObjectId;
+  companyId?: mongoose.Types.ObjectId;
+  hourlyRateBid?: number;
+  resumeUrl: string;
+  passedThreshold?: boolean;
+
+  // TODO: currentStage — סוג השדה ממתין לאישור.
+  // אין להגדיר שדה פעיל או קשר ל-Stage בשלב זה.
+
+  rejectionReason?: string;
+}
+
+const applicationSchema = new mongoose.Schema<Application>(
+  {
+    positionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Position",
+    },
+    candidateId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Candidate",
+    },
+    companyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+    },
+    hourlyRateBid: { type: Number, cast: false, validate: { validator: rules.optional(rules.isRate), message: rules.messages.hourlyRateBid } },
+    resumeUrl: {
+      type: String,
+      required: true,
+      cast: false,
+      trim: true,
+      validate: { validator: (value: unknown) => rules.webDocumentUrl(value) !== null, message: rules.messages.resumeUrl },
+    },
+    passedThreshold: { type: Boolean, cast: false },
+
+    // TODO: currentStage — להוסיף רק לאחר אישור סוג השדה.
+    // המסמך אינו מגדיר אותו כקשר ל-Stage.
+
+    rejectionReason: String,
+  },
+  {
+    timestamps: false,
+    versionKey: false,
+  }
+);
+
+const Application = mongoose.model<Application>("Application", applicationSchema);
+
+export = Application;

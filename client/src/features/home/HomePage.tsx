@@ -1,30 +1,17 @@
 import { useNavigate } from "react-router-dom";
 import { Button, Card, Heading, Text } from "@ds/components";
+import { PageLayout } from "@/shared/PageLayout";
 
-// Landing page for the app ("/"). Replaces the throwaway DevIndex harness.
 export function HomePage() {
   const navigate = useNavigate();
-
   return (
-    <div style={pageStyle}>
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
-        <header style={{ marginBottom: 24 }}>
-          <Heading level={1}>מערכת לניהול גיוס עובדים</Heading>
-          <div style={{ marginTop: 6 }}>
-            <Text>ניהול מועמדים, מועמדויות והערכות במקום אחד.</Text>
-          </div>
-        </header>
-        <Card>
-          <Button onClick={() => navigate("/candidates")}>רשימת מועמדים</Button>
-        </Card>
-      </div>
-    </div>
+    <PageLayout title="ניהול גיוס ותיחור" description="ניהול מועמדים והגשות למשרות." narrow>
+      <Card><section className="nh-section" aria-label="מאגר המועמדים">
+        <Heading level={2}>מאגר מועמדים</Heading>
+        <Text>גישה לפרטי המועמדים, לחיפוש ולמעקב אחר ההגשות שלהם.</Text>
+        <div className="nh-actions"><Button type="button" onClick={() => navigate("/candidates")}>רשימת מועמדים</Button></div>
+      </section></Card>
+    </PageLayout>
   );
 }
 
-const pageStyle = {
-  direction: "rtl",
-  background: "var(--rf-paper)",
-  minHeight: "100vh",
-  padding: "40px 24px",
-} as const;

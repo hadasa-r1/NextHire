@@ -2,21 +2,25 @@
 
 ## Project shape
 
-- This is a TypeScript Node.js service using Express, Mongoose, CORS, and dotenv.
-- The package uses CommonJS (`"type": "commonjs"`), while TypeScript is configured with `module: "nodenext"` and strict checking.
-- Source code belongs under `src/`.
-- Current folders include `config/`, `controllers/`, `repository/`, `middleware/`, `models/`, `routes/`, and `scripts/`.
-- `src/config/database.ts` connects to MongoDB; `src/app.ts` assembles Express and `src/server.ts` starts the server.
+- This is an npm workspace project with a `server/` backend and a `client/` frontend.
+- The backend uses TypeScript, Express, Mongoose, CORS and dotenv. Its package is CommonJS with strict NodeNext TypeScript settings.
+- Backend source belongs under `server/src/`, with tests under `server/tests/`.
+- `server/src/config/database.ts` loads `server/.env`; `server/src/app.ts` assembles Express and `server/src/server.ts` starts it.
+- The React/Vite frontend belongs under `client/src/`. Its design system is in `client/src/design-system/`, imported with `@ds/*`.
+- Shared documentation stays in `docs/` and the root README. The lecturer's final PDF takes precedence over older planning documents.
 
-## Commands
+## Commands from the repository root
 
-- Install dependencies with `npm install`.
-- Run a type check with `npx tsc --noEmit`.
-- Run the development server with `npm run dev`, or start it once with `npm start`.
-- Run checks with `npm run typecheck` and `npm test`. MongoDB must be available for integration tests; test data is stored in temporary databases.
+- Install both workspaces with `npm ci` (or `npm install` when updating dependencies).
+- Run the backend with `npm run dev:server`, or `npm start` without watch mode.
+- Run the frontend in a second terminal with `npm run dev:client`.
+- Run `npm run typecheck` for both workspaces, `npm run build` for the frontend, and `npm test` for backend tests.
+- MongoDB must be available for integration tests; test data is stored in temporary databases.
 
 ## Editing conventions
 
 - Keep changes focused and preserve the existing TypeScript configuration unless the task requires changing it.
-- Put database connection setup in `src/config/database.ts`, data models in `src/models/`, request middleware in `src/middleware/`, the generic repository in `src/repository/`, generic controllers in `src/controllers/`, and HTTP route wiring in `src/routes/`.
-- Use environment variables for connection strings and other runtime configuration; do not commit secrets.
+- Backend folders under `server/src/` include `config/`, `models/`, `controllers/`, `repository/`, `middleware/`, `routes/` and `scripts/`.
+- Keep CRUD shared in the generic repository, controller and route factory.
+- Implement only Group B models; other groups' entities are references only.
+- Use environment variables for connection strings and configuration; do not commit secrets.

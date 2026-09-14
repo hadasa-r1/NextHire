@@ -1,103 +1,50 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { Button, Card, Heading, Input, Text } from "@ds/components";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button, Card, Field, Input, Text } from "@ds/components";
+import { PermissionGate } from "@/auth/PermissionGate";
+import { usePermissions } from "@/auth/usePermissions";
+import { PageLayout } from "@/shared/PageLayout";
+import { PageState } from "@/shared/PageState";
 import { CandidatesTable } from "./CandidatesTable";
 import { filterCandidates } from "./filter";
 import { useCandidates } from "./useCandidates";
 
 export function CandidatesPage() {
-  const { status, candidates, errorMessage, reload } = useCandidates();
+  const navigate = useNavigate();
+  const { can } = usePermissions();
+  return (
+    <PageLayout title="רשימת מועמדים" description="פרטי המועמדים במערכת והגישה להגשות שלהם."
+      actions={<Button type="button" disabled={!can("Candidate", "WRITE")} onClick={() => navigate("/candidates/new")}>הוספת מועמד</Button>}>
+      <Card>
+        <PermissionGate resource="Candidate" action="READ"><CandidatesList /></PermissionGate>
+      </Card>
+    </PageLayout>
+  );
+}
+
+function CandidatesList() {
+  const result = useCandidates();
   const [query, setQuery] = useState("");
+  const candidates = result.status === "ready" ? result.data : [];
+  const visibleCandidates = useMemo(() => filterCandidates(candidates, query), [candidates, query]);
 
-  const visibleCandidates = useMemo(
-    () => filterCandidates(candidates, query),
-    [candidates, query],
-  );
-
+  if (result.status === "loading" || result.status === "idle") return <PageState kind="loading" message="טוען את רשימת המועמדים…" />;
+  if (result.status === "error") return <PageState kind="error" message={result.error.message} onRetry={result.reload} />;
   return (
-    <CandidatesLayout
-      heading="רשימת מועמדים"
-      subtitle={status === "ready" ? `${candidates.length} מועמדים` : undefined}
-    >
-      {status === "ready" && candidates.length > 0 && (
-        <div style={toolbarStyle}>
-          <Input
-            type="search"
-            placeholder="חיפוש לפי שם או תעודת זהות"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            style={{ minWidth: 280 }}
-          />
+    <div className="nh-section">
+      <div className="nh-toolbar">
+        <div className="nh-search">
+          <Field label="חיפוש מועמד">
+            <Input id="candidate-search" type="search" aria-label="חיפוש מועמד לפי שם או מספר זהות"
+              placeholder="שם או מספר זהות" value={query} onChange={(event) => setQuery(event.target.value)} />
+          </Field>
         </div>
-      )}
-
-      {status === "loading" && <Text>טוען מועמדים…</Text>}
-
-      {status === "error" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
-          <Text>{errorMessage ?? "אירעה שגיאה."}</Text>
-          <Button variant="secondary" onClick={reload}>
-            נסו שוב
-          </Button>
-        </div>
-      )}
-
-      {status === "ready" && candidates.length === 0 && (
-        <Text>אין מועמדים במערכת</Text>
-      )}
-
-      {status === "ready" && candidates.length > 0 && (
-        <>
-          <CandidatesTable candidates={visibleCandidates} />
-          {visibleCandidates.length === 0 && (
-            <Text>לא נמצאו מועמדים התואמים לחיפוש.</Text>
-          )}
-        </>
-      )}
-    </CandidatesLayout>
-  );
-}
-
-interface CandidatesLayoutProps {
-  heading: string;
-  subtitle?: string | undefined;
-  children: ReactNode;
-}
-
-function CandidatesLayout({ heading, subtitle, children }: CandidatesLayoutProps) {
-  return (
-    <div style={pageStyle}>
-      <div style={{ maxWidth: 960, margin: "0 auto" }}>
-        <header style={{ marginBottom: 24 }}>
-          <Heading level={1}>{heading}</Heading>
-          {subtitle && (
-            <div style={headerMetaStyle}>
-              <Text>{subtitle}</Text>
-            </div>
-          )}
-        </header>
-        <Card>{children}</Card>
+        <div role="status" aria-live="polite"><Text>{visibleCandidates.length} מתוך {candidates.length} מועמדים</Text></div>
       </div>
+      {candidates.length === 0 ? <PageState message="טרם נוספו מועמדים למערכת." />
+        : visibleCandidates.length === 0 ? <PageState message="לא נמצאו מועמדים התואמים לחיפוש." />
+        : <CandidatesTable candidates={visibleCandidates} />}
     </div>
   );
 }
 
-const pageStyle = {
-  direction: "rtl",
-  background: "var(--rf-paper)",
-  minHeight: "100vh",
-  padding: "40px 24px",
-} as const;
-
-const headerMetaStyle = {
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  gap: 10,
-  marginTop: 6,
-} as const;
-
-const toolbarStyle = {
-  display: "flex",
-  justifyContent: "flex-start",
-  marginBottom: 16,
-} as const;
