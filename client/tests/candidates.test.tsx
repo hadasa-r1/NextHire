@@ -45,7 +45,7 @@ test("Both form modes use only approved fields, preserve leading zeros, and disa
   const html = renderToStaticMarkup(<CandidateForm initialCandidate={candidate} canSave={false} onSave={async () => {}} onCancel={() => {}} />);
   assert.match(html, /value="000000018"/);
   assert.match(html, /fieldset[^>]*disabled/);
-  assert.deepEqual([...html.matchAll(/name="([^"]+)"/g)].map((match) => match[1]), ["fullName", "idNumber", "phone", "email"]);
+  assert.deepEqual([...html.matchAll(/name="([^"]+)"/g)].map((match) => match[1]), ["photoFile", "fullName", "idNumber", "phone", "email", "linkedinUrl", "githubUrl"]);
   const payload = candidatePayload({ ...candidate, fullName: " Example " });
   assert.deepEqual(payload, { fullName: "Example", idNumber: "000000018", phone: "", email: "" });
   assert.equal("_id" in payload, false);
@@ -97,4 +97,30 @@ test("Candidate ID fields accept nine digits without checksum calculations", () 
   for (const idNumber of ["", "12345678", "1234567890", "12345a789", "123-45678"]) {
     assert.throws(() => candidatePayload({ ...fields, idNumber }));
   }
+});
+
+test("Candidate profile extensions are optional, validated, clearable and exclude extra payload fields", () => {
+  const core = { fullName: "Example", idNumber: "123456789", phone: "", email: "" };
+  const fields = { ...core, linkedinUrl: " https://www.linkedin.com/in/example ", githubUrl: "https://github.com/example",
+    photoUrl: "https://example.com/photo.png", ignored: "not persisted" };
+  const payload = candidatePayload(fields);
+  assert.equal(payload.linkedinUrl, "https://www.linkedin.com/in/example");
+  assert.equal(payload.githubUrl, fields.githubUrl);
+  assert.equal(payload.photoUrl, fields.photoUrl);
+  assert.equal("ignored" in payload, false);
+  assert.equal(candidatePayload({ ...fields, photoUrl: "", githubUrl: "", linkedinUrl: "" }).photoUrl, "");
+  assert.throws(() => candidatePayload({ ...fields, githubUrl: "https://github.com.evil.test/example" }));
+  assert.throws(() => candidatePayload({ ...fields, linkedinUrl: "javascript:alert(1)" }));
+  assert.throws(() => candidatePayload({ ...fields, photoUrl: "data:image/svg+xml,test" }));
+});
+test("Candidate photo UI falls back to initials without a valid photo URL", async () => {
+  const { CandidatePhoto } = await import("../src/features/candidates/CandidatePhoto");
+  const placeholder = renderToStaticMarkup(<CandidatePhoto name="Test Person" />);
+  assert.match(placeholder, /TP/);
+  assert.doesNotMatch(placeholder, /<img/);
+  const invalid = renderToStaticMarkup(<CandidatePhoto photoUrl="javascript:alert(1)" />);
+  assert.doesNotMatch(invalid, /<img/);
+  const valid = renderToStaticMarkup(<CandidatePhoto name="Test" photoUrl="https://example.com/photo.png" />);
+  assert.match(valid, /<img/);
+  assert.match(valid, /referrerPolicy="no-referrer"/i);
 });

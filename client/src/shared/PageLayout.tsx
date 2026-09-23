@@ -26,8 +26,8 @@ export function PageLayout({ title, description, actions, children, narrow = fal
           </NavLink>
           <nav aria-label="ניווט ראשי" className="nh-navigation">
             <NavLink to="/" end>ראשי</NavLink>
-            <NavLink to="/candidates">מועמדים</NavLink>
-            <NavLink to="/applications">הגשות</NavLink>
+            <NavLink to="/positions">משרות</NavLink>
+            <NavLink to="/candidates">מאגר מועמדים</NavLink>
           </nav>
         </div>
       </header>

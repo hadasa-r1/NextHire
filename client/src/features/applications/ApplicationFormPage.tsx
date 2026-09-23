@@ -1,5 +1,5 @@
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Button, Card, Text } from "@ds/components";
+import { Button, Card, Heading, Text } from "@ds/components";
 import { apiRequest } from "@/api/client";
 import { PermissionGate } from "@/auth/PermissionGate";
 import { usePermissions } from "@/auth/usePermissions";
@@ -14,9 +14,11 @@ import type { ApplicationValues } from "./application-fields";
 
 export function ApplicationFormPage() {
   const { applicationId } = useParams();
+  const [params] = useSearchParams();
+  const positionId = params.get("positionId");
   const navigate = useNavigate();
   return <PageLayout title={applicationId ? "עריכת הגשה" : "הגשת מועמד למשרה"} description="משרה, מועמד, חברה, הצעת תעריף וקורות חיים." narrow
-    actions={<Button type="button" variant="secondary" onClick={() => navigate("/applications")}>חזרה לרשימה</Button>}>
+    actions={<Button type="button" variant="secondary" onClick={() => navigate(positionId && /^[a-f\d]{24}$/i.test(positionId) ? "/positions/" + encodeURIComponent(positionId) + "/candidates" : "/positions")}>חזרה לרשימה</Button>}>
     <Card><PermissionGate resource="Application" action="WRITE">
       <PermissionGate resource="Candidate" action="READ">
         {applicationId ? <PermissionGate resource="Application" action="READ"><ApplicationEditor applicationId={applicationId} key={applicationId} /></PermissionGate> : <ApplicationEditor />}
@@ -38,13 +40,27 @@ function ApplicationEditor({ applicationId }: { applicationId?: string }) {
   const positionId = params.get("positionId") ?? "";
 
   const cancel = () => navigate(applicationId ? "/applications/" + encodeURIComponent(applicationId)
-    : /^[a-f\d]{24}$/i.test(candidateId) ? "/candidates/" + encodeURIComponent(candidateId) : "/applications");
+    : /^[a-f\d]{24}$/i.test(positionId) ? "/positions/" + encodeURIComponent(positionId) + "/candidates"
+    : /^[a-f\d]{24}$/i.test(candidateId) ? "/candidates/" + encodeURIComponent(candidateId) : "/positions");
   async function save(values: ApplicationValues) {
     if (!can("Application", "WRITE")) throw new Error("אין לך הרשאה לשמירת ההגשה.");
+    if (!applicationId && (!values.positionId || !values.candidateId))
+      throw new Error("כדי להגיש מועמד למשרה יש לבחור משרה ומועמד.");
+    if (!applicationId) {
+      if (!values.companyId) throw new Error("יש לבחור חברה מגישה.");
+      const submitted = await apiRequest<{ complete: boolean; results: { error?: string; rejected?: boolean }[] }>("/submissions/commit", {
+        method: "POST", body: { positionId: values.positionId, companyId: values.companyId, rows: [{ candidateId: values.candidateId, resumeUrl: values.resumeUrl, ...(values.hourlyRateBid !== undefined ? { hourlyRateBid: values.hourlyRateBid } : {}) }] },
+      });
+      if (!submitted.complete) throw new Error(submitted.results.find(row => row.error)?.error ?? "ההגשה לא נשמרה.");
+      navigate("/positions/" + encodeURIComponent(values.positionId!) + "/candidates", {
+        replace: true, state: { notice: submitted.results[0]?.rejected ? "ההגשה נקלטה אך נפסלה להמשך בגלל הגשה משתי חברות." : "ההגשה נשמרה בהצלחה." },
+      });
+      return;
+    }
     const saved = await apiRequest<Application>("/applications" + (applicationId ? "/" + encodeURIComponent(applicationId) : ""), {
       method: applicationId ? "PATCH" : "POST", body: values,
     });
-    navigate(can("Application", "READ") ? "/applications/" + encodeURIComponent(saved._id) : "/", {
+    navigate(can("Application", "READ") ? saved.positionId ? "/positions/" + encodeURIComponent(saved.positionId) + "/candidates" : "/applications/" + encodeURIComponent(saved._id) : "/", {
       replace: true, state: { notice: applicationId ? "פרטי ההגשה עודכנו בהצלחה." : "ההגשה נשמרה בהצלחה." },
     });
   }
@@ -64,7 +80,13 @@ function ApplicationEditor({ applicationId }: { applicationId?: string }) {
     {positions.options.length === 0 && <Text>אין משרות זמינות לבחירה.</Text>}
     {companies.options.length === 0 && <Text>אין חברות זמינות לבחירה.</Text>}
     {candidates.data.length === 0 && <Text>אין מועמדים במערכת. ניתן להוסיף מועמד במסך המועמדים.</Text>}
+    {!applicationId && can("Candidate", "WRITE") && <div className="nh-section">
+      <Heading level={2}>בחירת מועמד</Heading>
+      <Text>בחרו מועמד מהמאגר בטופס, או צרו מועמד חדש והמשיכו להגשתו למשרה.</Text>
+      <div className="nh-actions"><Button type="button" variant="secondary" onClick={() => navigate("/candidates/new" + (/^[a-f\d]{24}$/i.test(positionId) ? "?positionId=" + encodeURIComponent(positionId) : ""))}>יצירת מועמד חדש</Button></div>
+    </div>}
     <ApplicationForm {...initial} prefill={{ candidateId, positionId }} positions={positions.options} companies={companies.options} candidates={candidates.data}
+      lockPosition={!applicationId && /^[a-f\d]{24}$/i.test(positionId)}
       canSave={can("Application", "WRITE")} onSave={save} onCancel={cancel} />
   </div>;
 }

@@ -1,3 +1,9 @@
+.nh-matrix { overflow-x: auto; }
+.nh-matrix table { min-width: 1100px; }
+.nh-matrix th { min-width: 130px; }
+.nh-process-flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; padding-inline-start: 24px; margin: 0; }
+.nh-process-flow li { padding: 16px; border: 1px solid var(--rf-line); background: var(--rf-paper-raised); }
+.nh-process-flow li[aria-current="step"] { border-color: var(--rf-primary); }
 /* Application layout only. Shared design-system component styles remain intact. */
 body { margin: 0; }
 .nh-shell { min-height: 100vh; background: var(--rf-paper); color: var(--rf-ink); }
@@ -47,3 +53,9 @@ body { margin: 0; }
 
 
 .nh-demo-banner { padding: 12px 24px; background: var(--rf-paper-raised); border-bottom: 1px solid var(--rf-line-strong); direction: rtl; }
+
+.nh-profile-header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 16px; }
+.nh-profile-header .rf-field { min-width: 0; max-width: 100%; }
+.nh-profile-header input[type="file"] { max-width: 100%; }
+.nh-candidate-photo { width: 96px; height: 96px; object-fit: cover; border: 1px solid var(--rf-line); border-radius: 4px; flex-shrink: 0; }
+.nh-candidate-placeholder { display: grid; place-items: center; font-family: var(--rf-font-display); font-size: 24px; background: var(--rf-paper-raised); color: var(--rf-ink-muted); }

@@ -7,7 +7,8 @@ import { PageLayout } from "@/shared/PageLayout";
 import { PageState } from "@/shared/PageState";
 import { CandidatesTable } from "./CandidatesTable";
 import { filterCandidates } from "./filter";
-import { useCandidates } from "./useCandidates";
+import { useApiResource } from "@/shared/useApiResource";
+import type { Candidate } from "@/types/domain";
 
 export function CandidatesPage() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export function CandidatesPage() {
 }
 
 function CandidatesList() {
-  const result = useCandidates();
+  const result = useApiResource<Candidate[]>("/candidates");
   const [query, setQuery] = useState("");
   const candidates = result.status === "ready" ? result.data : [];
   const visibleCandidates = useMemo(() => filterCandidates(candidates, query), [candidates, query]);

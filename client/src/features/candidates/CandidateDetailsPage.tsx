@@ -5,6 +5,8 @@ import { usePermissions } from "@/auth/usePermissions";
 import { PageLayout } from "@/shared/PageLayout";
 import { PageState } from "@/shared/PageState";
 import { useApiResource } from "@/shared/useApiResource";
+import { isLinkedInProfileUrl, isGitHubProfileUrl } from "@validation";
+import { CandidatePhoto } from "./CandidatePhoto";
 import type { Application, Candidate } from "@/types/domain";
 
 export function CandidateDetailsPage() {
@@ -39,7 +41,10 @@ function CandidateDetails({ candidateId }: { candidateId: string }) {
       {notice && <PageState message={notice} />}
       <Card><section className="nh-section" aria-label="פרטי המועמד">
         <div className="nh-page-header">
-          <Heading level={2}>{candidate.fullName || "פרטי המועמד"}</Heading>
+          <div className="nh-profile-header">
+            <CandidatePhoto name={candidate.fullName} photoUrl={candidate.photoUrl} />
+            <Heading level={2}>{candidate.fullName || "פרטי המועמד"}</Heading>
+          </div>
           {can("Candidate", "WRITE") && <Button type="button" variant="secondary"
             onClick={() => navigate("/candidates/" + encodeURIComponent(candidateId) + "/edit")}>עריכה</Button>}
         </div>
@@ -49,6 +54,10 @@ function CandidateDetails({ candidateId }: { candidateId: string }) {
           <div><dt>טלפון</dt><dd><Text><bdi>{candidate.phone || "—"}</bdi></Text></dd></div>
           <div><dt>דוא״ל</dt><dd><Text><bdi>{candidate.email || "—"}</bdi></Text></dd></div>
         </dl>
+        <div className="nh-actions" aria-label="פרופילים מקצועיים">
+          {isLinkedInProfileUrl(candidate.linkedinUrl) && <a className="nh-text-link" href={candidate.linkedinUrl} target="_blank" rel="noopener noreferrer">פרופיל LinkedIn</a>}
+          {isGitHubProfileUrl(candidate.githubUrl) && <a className="nh-text-link" href={candidate.githubUrl} target="_blank" rel="noopener noreferrer">פרופיל GitHub</a>}
+        </div>
       </section></Card>
       <Card><section className="nh-section" aria-label="הגשות המועמד">
         <div className="nh-page-header">

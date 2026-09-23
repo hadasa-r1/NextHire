@@ -1,6 +1,15 @@
 import { isRate, messages, webDocumentUrl } from "@validation";
 import type { Application, ApplicationWithCandidate } from "@/types/domain";
 
+export function thresholdBadge(passed: boolean | undefined): { tone: "draft" | "pending" | "success"; label: string } {
+  if (passed === true) return { tone: "success", label: "עבר" };
+  if (passed === false) return { tone: "pending", label: "לא עבר" };
+  return { tone: "draft", label: "טרם נבדק" };
+}
+export function candidatePoolDestination(positionId?: string): string {
+  return positionId && /^[a-f\d]{24}$/i.test(positionId) ? "/positions/" + encodeURIComponent(positionId.toLowerCase()) + "/candidates" : "/positions";
+}
+
 export interface ApplicationFields {
   positionId: string;
   candidateId: string;

@@ -53,3 +53,15 @@ test("Application, evaluation and summary enforce numeric and URL formats, not i
   await assert.rejects(new TenderSummary({ awardLetterUrl: "file:///award.pdf" }).validate());
   await assert.doesNotReject(new TenderSummary({}).validate());
 });
+
+test("Optional candidate profiles reject spoofed domains and executable photo URLs", async () => {
+  await new Candidate({ idNumber: "123456789" }).validate();
+  await new Candidate({ idNumber: "123456789", linkedinUrl: "https://www.linkedin.com/in/example",
+    githubUrl: "https://github.com/example", photoUrl: "https://example.com/photo.png" }).validate();
+  await new Candidate({ idNumber: "123456789", linkedinUrl: "", githubUrl: "", photoUrl: "" }).validate();
+  for (const fields of [
+    { linkedinUrl: "https://linkedin.com.evil.test/in/example" }, { linkedinUrl: "https://linkedin.com/company/example" },
+    { githubUrl: "https://github.com/example/repository" }, { githubUrl: "https://example.com" },
+    { githubUrl: "https://name:secret@github.com/example" }, { photoUrl: "javascript:alert(1)" },
+  ]) await assert.rejects(new Candidate({ idNumber: "123456789", ...fields }).validate());
+});

@@ -55,11 +55,38 @@ export const isActualValue = (value: unknown): boolean => typeof value === "bool
 export const optional = (rule: (value: unknown) => boolean) => (value: unknown): boolean => value === undefined || rule(value);
 export const optionalText = (rule: (value: unknown) => boolean) => optional(value => value === "" || rule(value));
 
-export type CandidateField = "fullName" | "idNumber" | "phone" | "email";
-export function candidateIssues(values: Record<CandidateField, string>): Partial<Record<CandidateField, string>> {
+// Optional profile extensions explicitly requested by the project owner.
+export type CandidateProfileField = "linkedinUrl" | "githubUrl" | "photoUrl";
+export type CandidateField = "fullName" | "idNumber" | "phone" | "email" | CandidateProfileField;
+export const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+export const PHOTO_ACCEPT = ".jpg,.jpeg,.png,image/jpeg,image/png";
+export function photoFileIssue(name: string, size: number): string | undefined {
+  if (!/\.(png|jpe?g)$/i.test(name)) return "יש לבחור תמונה מסוג JPG או PNG.";
+  if (size <= 0) return "קובץ התמונה ריק.";
+  if (size > MAX_PHOTO_BYTES) return "גודל התמונה המרבי הוא 2MB.";
+  return undefined;
+}
+export function isLinkedInProfileUrl(value: unknown): boolean {
+  const safe = webDocumentUrl(value);
+  if (!safe) return false;
+  const url = new URL(safe);
+  return url.protocol === "https:" && /^(?:(?:www|[a-z]{2})\.)?linkedin\.com$/i.test(url.hostname) &&
+    /^\/in\/[^/]+\/?$/.test(url.pathname);
+}
+export function isGitHubProfileUrl(value: unknown): boolean {
+  const safe = webDocumentUrl(value);
+  if (!safe) return false;
+  const url = new URL(safe);
+  return url.protocol === "https:" && /^(?:www\.)?github\.com$/i.test(url.hostname) &&
+    /^\/[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?\/?$/i.test(url.pathname);
+}
+export function candidateIssues(values: Record<"fullName" | "idNumber" | "phone" | "email", string> & Partial<Record<CandidateProfileField, string>>): Partial<Record<CandidateField, string>> {
   const issues: Partial<Record<CandidateField, string>> = {};
   if (!isIsraeliId(values.idNumber.trim())) issues.idNumber = messages.idNumber;
   if (!optionalText(isPhone)(values.phone.trim())) issues.phone = messages.phone;
   if (!optionalText(isEmail)(values.email.trim())) issues.email = messages.email;
+  if (!optionalText(isLinkedInProfileUrl)(values.linkedinUrl?.trim())) issues.linkedinUrl = "יש להזין קישור לפרופיל LinkedIn, למשל https://www.linkedin.com/in/name.";
+  if (!optionalText(isGitHubProfileUrl)(values.githubUrl?.trim())) issues.githubUrl = "יש להזין קישור לפרופיל GitHub, למשל https://github.com/username.";
+  if (!optionalText(value => webDocumentUrl(value) !== null)(values.photoUrl?.trim())) issues.photoUrl = "קישור התמונה אינו תקין.";
   return issues;
 }

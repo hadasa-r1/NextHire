@@ -8,15 +8,16 @@ import { PageState } from "@/shared/PageState";
 import { DocumentButton } from "@/shared/DocumentButton";
 import { useApiResource } from "@/shared/useApiResource";
 import type { Application, Candidate } from "@/types/domain";
-import { thresholdBadge } from "@/features/candidate-pool/stage";
+import { thresholdBadge } from "./application-fields";
 import { ApplicationDecisions } from "./ApplicationDecisions";
+import { ApplicationProcess } from "@/features/evaluations/ApplicationProcess";
 import { EvaluationScoresTable } from "@/features/evaluations/EvaluationScoresTable";
 
 export function ApplicationDetailsPage() {
   const { applicationId = "" } = useParams();
   const navigate = useNavigate();
   return <PageLayout title="פרטי הגשה" description="פרטי המועמדות, מידע על התהליך והערכות שנשמרו."
-    actions={<Button type="button" variant="secondary" onClick={() => navigate("/applications")}>חזרה להגשות</Button>}>
+    actions={<Button type="button" variant="secondary" onClick={() => navigate("/positions")}>חזרה למשרות</Button>}>
     <PermissionGate resource="Application" action="READ"><ApplicationDetails key={applicationId} applicationId={applicationId} /></PermissionGate>
   </PageLayout>;
 }
@@ -44,6 +45,7 @@ function ApplicationDetails({ applicationId }: { applicationId: string }) {
     {notice && <PageState message={notice} />}
     <Card><section className="nh-section" aria-label="פרטי המועמדות">
       <div className="nh-page-header"><Heading level={2}>פרטי ההגשה</Heading><div className="nh-actions">
+        {application.positionId && <Button type="button" variant="secondary" onClick={() => navigate("/positions/" + encodeURIComponent(application.positionId!) + "/candidates")}>מועמדים למשרה זו</Button>}
         {can("Application", "WRITE") && <Button type="button" variant="secondary" onClick={() => navigate("/applications/" + encodeURIComponent(applicationId) + "/edit")}>עריכה</Button>}
         <DocumentButton url={application.resumeUrl} />
       </div></div>
@@ -68,10 +70,11 @@ function ApplicationDetails({ applicationId }: { applicationId: string }) {
           {...(application.passedThreshold !== undefined ? { passedThreshold: application.passedThreshold } : {})}
           {...(application.rejectionReason !== undefined ? { rejectionReason: application.rejectionReason } : {})}
           onSaved={record.reload} />}
-        {can("EvaluationScore", "WRITE") && <Button type="button" variant="secondary" onClick={() => navigate("/applications/" + encodeURIComponent(applicationId) + "/evaluation")}>הזנת הערכה</Button>}
+        {can("EvaluationScore", "WRITE") && <Button type="button" variant="secondary" onClick={() => navigate("/applications/" + encodeURIComponent(applicationId) + "/evaluation")}>ראיונות והערכות</Button>}
         {can("TenderSummary", "READ") && <Button type="button" variant="secondary" disabled={!application.positionId} onClick={() => { if (application.positionId) navigate("/positions/" + encodeURIComponent(application.positionId) + "/tender-summary"); }}>צפייה במפ״ל</Button>}
       </div>
     </section></Card>
+    <PermissionGate resource="EvaluationScore" action="READ"><ApplicationProcess applicationId={applicationId} /></PermissionGate>
     <Card><section className="nh-section" aria-label="הערכות"><Heading level={2}>הערכות להגשה</Heading>
       <PermissionGate resource="EvaluationScore" action="READ"><EvaluationScoresTable applicationId={applicationId} /></PermissionGate>
     </section></Card>

@@ -37,12 +37,16 @@ test("The application serves HTTP requests backed by local MongoDB", async (t) =
       }),
     });
 
-    await t.test("All four entities can be created, read, updated, and removed through the API", async () => {
+    await t.test("Generic data CRUD remains available while score mutations must use the guarded evaluation workflow", async () => {
       const candidateResponse = await request("/api/candidates", "POST", {
         idNumber: "000000018", fullName: "API test candidate",
+        linkedinUrl: "https://www.linkedin.com/in/example", githubUrl: "https://github.com/example", photoUrl: "https://example.com/photo.png",
       });
       assert.equal(candidateResponse.status, 201);
       const candidate = await candidateResponse.json();
+      assert.equal(candidate.linkedinUrl, "https://www.linkedin.com/in/example");
+      assert.equal(candidate.githubUrl, "https://github.com/example");
+      assert.equal(candidate.photoUrl, "https://example.com/photo.png");
 
       const applicationResponse = await request("/api/applications", "POST", {
         candidateId: candidate._id,
@@ -51,13 +55,18 @@ test("The application serves HTTP requests backed by local MongoDB", async (t) =
       assert.equal(applicationResponse.status, 201);
       const application = await applicationResponse.json();
       assert.equal(application.candidateId, candidate._id);
+      assert.equal((await request("/api/applications/" + application._id, "PATCH", { candidateId: candidate._id, resumeUrl: "https://example.test/resume-updated.pdf" })).status, 200);
+      assert.equal((await request("/api/applications/" + application._id, "PATCH", { passedThreshold: true })).status, 400);
 
       const evaluationResponse = await request("/api/evaluation-scores", "POST", {
         applicationId: application._id, actualValue: false,
       });
-      assert.equal(evaluationResponse.status, 201);
-      const evaluation = await evaluationResponse.json();
-      assert.equal(evaluation.actualValue, false);
+      assert.equal(evaluationResponse.status, 405);
+      const evaluation = await repositories.evaluationScoreRepository.add({ applicationId: new mongoose.Types.ObjectId(application._id), actualValue: false });
+      assert.equal((await request("/api/evaluation-scores/" + String(evaluation._id), "PATCH", { actualValue: 0 })).status, 405);
+      assert.equal((await request("/api/evaluation-scores/" + String(evaluation._id), "DELETE")).status, 405);
+      assert.equal((await (await request("/api/evaluation-scores/" + String(evaluation._id))).json()).actualValue, false);
+      await repositories.evaluationScoreRepository.remove(String(evaluation._id));
 
       const summaryResponse = await request("/api/tender-summaries", "POST", {
         applicationId: application._id,
@@ -73,9 +82,8 @@ test("The application serves HTTP requests backed by local MongoDB", async (t) =
       assert.deepEqual(await duplicate.json(), { message: "כבר קיימת רשומה עם אותו ערך ייחודי." });
 
       const cases = [
-        ["/api/candidates", candidate._id, { fullName: "Updated API candidate" }],
+        ["/api/candidates", candidate._id, { fullName: "Updated API candidate", linkedinUrl: "", githubUrl: "", photoUrl: "" }],
         ["/api/applications", application._id, { hourlyRateBid: 150 }],
-        ["/api/evaluation-scores", evaluation._id, { actualValue: 0 }],
         ["/api/tender-summaries", summary._id, { rankPosition: 1 }],
       ] as const;
 
@@ -104,6 +112,32 @@ test("The application serves HTTP requests backed by local MongoDB", async (t) =
       }
     });
 
+
+    await t.test("Each position returns its own populated candidates before any tender summaries exist", async () => {
+      const positionA = new mongoose.Types.ObjectId(), positionB = new mongoose.Types.ObjectId();
+      const candidateA = await repositories.candidateRepository.add({ idNumber: "123456789", fullName: "Position A candidate" });
+      const candidateB = await repositories.candidateRepository.add({ idNumber: "987654321", fullName: "Position B candidate" });
+      const first = await repositories.applicationRepository.add({ positionId: positionA, candidateId: candidateA._id, resumeUrl: "https://example.com/a.pdf" });
+      const second = await repositories.applicationRepository.add({ positionId: positionB, candidateId: candidateB._id, resumeUrl: "https://example.com/b.pdf" });
+      try {
+        for (const [position, application, candidate] of [[positionA, first, candidateA], [positionB, second, candidateB]] as const) {
+          const response = await request("/api/applications?positionId=" + String(position) + "&populate=candidateId");
+          assert.equal(response.status, 200);
+          const rows = await response.json();
+          assert.equal(rows.length, 1);
+          assert.equal(rows[0]._id, String(application._id));
+          assert.equal(rows[0].candidateId.fullName, candidate.fullName);
+          const summaries = await request("/api/tender-summaries?applicationId=" + String(application._id));
+          assert.deepEqual(await summaries.json(), []);
+        }
+      } finally {
+        await repositories.applicationRepository.remove(String(first._id));
+        await repositories.applicationRepository.remove(String(second._id));
+        await repositories.candidateRepository.remove(String(candidateA._id));
+        await repositories.candidateRepository.remove(String(candidateB._id));
+      }
+    });
+
     await t.test("Model validation and casting errors return 400", async () => {
       for (const path of ["/api/candidates", "/api/applications"]) {
         const response = await request(path, "POST", {});
@@ -127,7 +161,6 @@ test("The application serves HTTP requests backed by local MongoDB", async (t) =
         ["/api/candidates", { idNumber: "000000018", email: "bad@" }],
         ["/api/applications", { resumeUrl: "javascript:alert(1)" }],
         ["/api/applications", { resumeUrl: "https://example.com/cv", hourlyRateBid: -1 }],
-        ["/api/evaluation-scores", { actualValue: { value: 3 } }],
         ["/api/tender-summaries", { rankPosition: 1.5 }],
       ] as const;
       for (const [path, body] of badRequests) {

@@ -15,4 +15,4 @@ export function EvaluationProvider({ services, children }: { services?: Evaluati
 }
 export function useEvaluationServices() { return useContext(EvaluationContext); }
 
-export { validateCriteria } from "@scoring";
+export { validateCriteria, validateStages } from "@scoring";

@@ -7,13 +7,16 @@ export interface TenderRow {
   summary?: TenderSummary;
 }
 
-export function buildTenderRows(applications: readonly ApplicationWithCandidate[], summaries: readonly TenderSummary[]): TenderRow[] {
+export function buildTenderRows(applications: readonly ApplicationWithCandidate[], summaries: readonly TenderSummary[], rankingAvailable = false): TenderRow[] {
   const ids = new Set(applications.map((application) => application._id));
   const byApplication = new Map<string, TenderSummary>();
   for (const summary of summaries) {
     if (!summary.applicationId || !ids.has(summary.applicationId)) continue;
     if (byApplication.has(summary.applicationId)) throw new Error("נמצא יותר מסיכום אחד לאותה הגשה.");
-    byApplication.set(summary.applicationId, summary);
+    // Lock confirmation must come from a trusted integration, never from the
+    // presence of rankPosition. Remove before sorting as order can reveal rank.
+    const { rankPosition: _rank, ...unranked } = summary;
+    byApplication.set(summary.applicationId, rankingAvailable ? summary : unranked);
   }
   return applications.map((application) => {
     const summary = byApplication.get(application._id);

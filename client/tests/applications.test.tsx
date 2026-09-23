@@ -83,3 +83,32 @@ test("Editing keeps the existing resume unless a replacement file is selected", 
   assert.match(html, /פתיחת קורות החיים הקיימים/);
   assert.doesNotMatch(html, /type="url"/);
 });
+
+test("Position directory counts only applications belonging to each listed position", async (t) => {
+  const { loadPositionCounts } = await import("../src/features/positions/PositionsPage");
+  const second = "507f1f77bcf86cd799439012";
+  const positions = [{ id, label: "משרה א" }, { id: second, label: "משרה ב" }];
+  t.mock.method(globalThis, "fetch", async (url: string) => {
+    assert.ok(url.startsWith("/api/applications?positionId="));
+    const positionId = new URL(url, "http://localhost").searchParams.get("positionId");
+    return Response.json(positionId === id
+      ? [{ _id: "one", positionId: id }, { _id: "two", positionId: id }, { _id: "other", positionId: second }]
+      : []);
+  });
+  assert.deepEqual(await loadPositionCounts(positions, new AbortController().signal), { [id]: 2, [second]: 0 });
+});
+test("Positions page denies access without permissions", async () => {
+  const { PositionsPage } = await import("../src/features/positions/PositionsPage");
+  const html = renderToStaticMarkup(<MemoryRouter><PositionsPage /></MemoryRouter>);
+  assert.match(html, /משרות/);
+  assert.match(html, /הרשאותיו טרם התקבלו/);
+});
+
+test("Position search matches names and real IDs, with whitespace and case normalization", async () => {
+  const { filterPositions } = await import("../src/features/positions/PositionsPage");
+  const positions = [{ id, label: "פיתוח תוכנה" }, { id: "aaaaaaaaaaaaaaaaaaaaaaaa", label: "בדיקות" }];
+  assert.deepEqual(filterPositions(positions, " פיתוח "), [positions[0]]);
+  assert.deepEqual(filterPositions(positions, "AAAA"), [positions[1]]);
+  assert.equal(filterPositions(positions, "no-match").length, 0);
+  assert.equal(filterPositions(positions, " ").length, 2);
+});

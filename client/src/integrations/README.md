@@ -1,13 +1,39 @@
-# Group A reference-data adapter
+# חיבור קבוצות א׳ וג׳
 
-The application screens consume `ReferenceDataProvider` from `ReferenceDataProvider.tsx`. Pass its `loadOptions` prop in `src/main.tsx` after the API contract with Group A is agreed.
+קבוצה ב׳ שומרת רק Candidate, Application, EvaluationScore ו־TenderSummary. אין כאן מודלים של Company, Position, Stage, Criterion או User.
 
-The loader receives `(resource, signal)`, where resource is `Position` or `Company`, and returns a list of `{ id, label }` view options. These options are client display data, not new database entities. Adapt the actual `_id` and approved title/name from Group A's authenticated API, and propagate AbortSignal to the request. IDs must be MongoDB ObjectIds. The integration owns response validation and credential transport.
+## נתוני המשרות והחברות — קבוצה א׳
+ReferenceDataProvider מקבל loadOptions(resource, signal), שמחזיר id ו־label עבור Position או Company.
+יש לספק נתונים מתוך API מאומת ולסנן לפי הרשאות. אין כתובת API משוערת.
 
-The loader is called only with the corresponding READ permission from Group C. Candidate choices use the existing `/api/candidates` endpoint with Candidate READ. To edit an Application, both Application READ and WRITE are needed; creation requires WRITE. No new permissions or models are granted or implemented here.
+שרת ההערכות מקבל loadCriteria(positionId) ו־loadStages(positionId).
+Stage כולל את שדות המסמך בלבד: _id, positionId, name, order, weightPercent, quota.
+התקדמות בתרשים מחושבת מהערכות קיימות. היא אינה שדה חדש במסד הנתונים ואינה currentStage.
 
-No API URL is guessed. Without a loader, the screens show that reference data is unavailable. Errors can be retried. A new authenticated session clears cached reference options; data from a previous session is not reused.
+## הגשה וייבוא
+אפשר להזריק SubmissionService כפרמטר השני ל־createApp.
+התלות authorizeSubmission(req, positionId, companyId) חייבת לאמת בצד השרת:
+- המשרה קיימת ופתוחה להגשה.
+- החברה קיימת ומורשית להגיש.
+- המשתמש רשאי לפעול בשם אותה חברה.
+הדמו המקומי מאשר רק את שני מזהי המשרות ושני מזהי החברות שלו, ואינו חיבור ייצור.
 
-Creation and editing share the same form. Optional references remain optional as in the approved schema. A preselected candidate or position from a URL must exist among the available options before a new reference can be saved. Existing references absent from the latest options can be preserved, but are explicitly shown as identifiers, not invented names.
+POST /api/submissions/preview בודק rows ללא יצירת מועמדים או הגשות.
+POST /api/submissions/commit בודק שוב, יוצר מועמד חסר ומקשר אותו למשרה ולחברה.
+לכל שורה אפשר לשלוח שדות Candidate המאושרים והרחבות הפרופיל שהמשתמשת ביקשה, resumeUrl ו־hourlyRateBid.
+candidateId מיועד לבחירה מפורשת של מועמד קיים. שם ות״ז ללא קורות חיים מצריכים השלמה לפני יצירת הגשה חדשה.
+ייבוא אינו משנה פרופיל קיים או נתוני הגשה קיימת. העלאה חוזרת אינה יוצרת שוב אותה הגשה.
+ב־MongoDB מקומי ללא replica set אין עסקה לכל הקובץ: כל השורות נבדקות מראש; כשל בשמירה מחזיר את השורות שהצליחו ואת מקום העצירה. ניסיון חוזר בטוח מהכפלה.
 
-The Application backend remains the generic CRUD API. No process-decision, evaluation-calculation, or tender-ranking rules have been added during this phase.
+## הרשאות — קבוצה ג׳
+resolveSession מספק זהות והרשאות מאומתות. authorizeSubmission מספק גם הרשאת פעולה בשם חברה; Company כישות אינה משתמש מחובר.
+ממשק ההדגמה משלב פעולות הגשה וטיפול פנימי. אין להעתיק את הרשאות הדמו לייצור.
+קורות החיים והתמונות מועלים דרך גשר פיתוח מקומי; אחסון מסמכים מאומת לייצור באחריות קבוצה ג׳.
+
+## תהליך
+הגשות משתי חברות לאותה ת״ז באותה משרה נפסלות באמצעות rejectionReason הקיים.
+הציונים נכתבים רק דרך /api/workflow/applications/:id/evaluations; כתיבה ישירה ל־/api/evaluation-scores חסומה כדי למנוע דילוג על תנאי התהליך.
+אישור סף מחייב תוצאת עבר לכל קריטריון סף מוגדר. חלופות השכלה הן תנאי אחד עם חלופות, לא רשימת תנאים שכל אחד מהם חובה.
+שלב מאוחר אינו פתוח לפני שכל קריטריוני השלב הקודם הושלמו. אם מוגדרת מכסת מעבר, נדרש גם חיבור להחלטה מוסמכת.
+הנתיבים /applications/:id/process ו־/positions/:id/matrix תחת /api/workflow מחזירים תצוגות מחושבות בלבד.
+נוסחת חיבור קריטריונים לציון שלב, נעילת ציונים, החלטות מכסה ומכתבי זכייה עדיין דורשים הסדרה וחיבור.

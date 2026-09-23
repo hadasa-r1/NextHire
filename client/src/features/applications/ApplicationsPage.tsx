@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button, Card, Field, Select, Text } from "@ds/components";
 import { PermissionGate } from "@/auth/PermissionGate";
 import { usePermissions } from "@/auth/usePermissions";
@@ -13,12 +13,15 @@ import { ApplicationsTable } from "./ApplicationsTable";
 export function ApplicationsPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const positionId = params.get("positionId") ?? "";
+  const route = useParams();
+  const positionId = route.positionId ?? params.get("positionId") ?? "";
   const { can } = usePermissions();
   const suffix = /^[a-f\d]{24}$/i.test(positionId) ? "?positionId=" + encodeURIComponent(positionId) : "";
-  return <PageLayout title="הגשות למשרות" description="בחירת משרה וצפייה במועמדויות שהוגשו אליה."
+  return <PageLayout title="מועמדים למשרה" description="רשימת המועמדים שהוגשו למשרה שנבחרה."
     actions={<>
-      <Button type="button" disabled={!can("Application", "WRITE")} onClick={() => navigate("/applications/new" + suffix)}>הגשת מועמד</Button>
+      <Button type="button" variant="secondary" onClick={() => navigate("/positions")}>חזרה למשרות</Button>
+      <Button type="button" disabled={!suffix || !can("Application", "WRITE")} onClick={() => navigate("/applications/new" + suffix)}>הוספת מועמד למשרה</Button>
+      {can("Application", "WRITE") && can("Candidate", "WRITE") && <Button type="button" variant="secondary" disabled={!suffix} onClick={() => navigate("/positions/" + encodeURIComponent(positionId) + "/import")}>הגשה מקובץ</Button>}
       {can("TenderSummary", "READ") && <Button type="button" variant="secondary" disabled={!suffix}
         onClick={() => { if (suffix) navigate("/positions/" + encodeURIComponent(positionId) + "/tender-summary"); }}>צפייה במפ״ל</Button>}
     </>}>
@@ -27,14 +30,19 @@ export function ApplicationsPage() {
 }
 
 function PositionApplications() {
-  const [params, setParams] = useSearchParams();
-  const positionId = params.get("positionId") ?? "";
+  const [params] = useSearchParams();
+  const route = useParams();
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  const positionId = route.positionId ?? params.get("positionId") ?? "";
+  const notice = typeof state?.notice === "string" ? state.notice : null;
   const positions = useReferenceOptions("Position");
   const knownPosition = positions.status === "ready" && positions.options.some((position) => position.id === positionId);
   return <div className="nh-section">
+    {notice && <PageState message={notice} />}
     <div className="nh-search"><Field label="משרה"><Select id="applications-position" aria-label="משרה"
       disabled={positions.status !== "ready"} value={positionId}
-      onChange={(event) => setParams(event.target.value ? { positionId: event.target.value } : {})}>
+      onChange={(event) => navigate(event.target.value ? "/positions/" + encodeURIComponent(event.target.value) + "/candidates" : "/positions")}>
       <option value="">בחרו משרה</option>
       {positionId && !knownPosition && <option value={positionId}>המשרה שנבחרה אינה זמינה ברשימה</option>}
       {positions.options.map((position) => <option key={position.id} value={position.id}>{position.label}</option>)}

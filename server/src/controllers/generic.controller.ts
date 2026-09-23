@@ -8,6 +8,8 @@ interface GenericControllerOptions<T> {
   // Query params accepted as exact-match filters on GET /. Values are read as
   // strings only; arrays and nested objects are ignored, so query operators
   // such as $ne cannot be injected through the query string.
+  readonly beforeWrite?: (req: Request, data: Partial<T>, id?: string) => Promise<void>;
+  readonly afterWrite?: (document: T) => Promise<void>;
   readonly filterableFields?: readonly (keyof T & string)[];
   // Reference fields a caller may expand with ?populate=field,field. Only list
   // fields whose target model is registered in this service.
@@ -29,7 +31,9 @@ class GenericController<T extends object> {
       return;
     }
 
+    await this.options.beforeWrite?.(req, req.body);
     const document = await this.repository.add(req.body);
+    await this.options.afterWrite?.(document);
     res.status(201).json(document);
   };
 
@@ -64,6 +68,7 @@ class GenericController<T extends object> {
       return;
     }
 
+    await this.options.beforeWrite?.(req, req.body, id);
     const document = await this.repository.update(id, req.body);
 
     if (document === null) {
@@ -71,6 +76,7 @@ class GenericController<T extends object> {
       return;
     }
 
+    await this.options.afterWrite?.(document);
     res.status(200).json(document);
   };
 

@@ -26,7 +26,7 @@ export function ApplicationDecisions({ applicationId, passedThreshold, rejection
   }
   return <div className="nh-section">
     <div className="nh-actions">
-      <Button type="button" disabled={busy || passedThreshold === true} onClick={() => void decide("pass-threshold")}>
+      <Button type="button" disabled={busy || passedThreshold === true || Boolean(rejectionReason?.trim())} onClick={() => void decide("pass-threshold")}>
         {passedThreshold === true ? "עבר סף" : "סימון עבר סף"}
       </Button>
       <Button type="button" variant="danger" disabled={busy} onClick={() => setRejecting(true)}>דחיית מועמד</Button>

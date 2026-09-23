@@ -1,6 +1,8 @@
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Button, Field, Input, Text } from "@ds/components";
-import { candidateIssues, type CandidateField } from "@validation";
+import { candidateIssues, PHOTO_ACCEPT, photoFileIssue, type CandidateField } from "@validation";
+import { uploadCandidatePhoto } from "@/api/photos";
+import { CandidatePhoto } from "./CandidatePhoto";
 import { PageState } from "@/shared/PageState";
 import type { Candidate } from "@/types/domain";
 import { candidateFields, candidatePayload, type CandidateValues } from "./candidate-fields";
@@ -10,6 +12,8 @@ const inputs = [
   { name: "idNumber", label: "מספר זהות — חובה", type: "text", autoComplete: "off", hint: "9 ספרות בלבד, למשל 123456789. אין צורך בבדיקת ספרת ביקורת; אפסים בתחילת המספר נשמרים." },
   { name: "phone", label: "טלפון", type: "tel", autoComplete: "tel", hint: "למשל 0501234567 או 050-1234567. אפשר גם טלפון קווי, סוגריים וקידומת ‎+972; השדה אינו חובה." },
   { name: "email", label: "דוא״ל", type: "email", autoComplete: "email", hint: "" },
+  { name: "linkedinUrl", label: "פרופיל LinkedIn", type: "url", autoComplete: "off", hint: "קישור לפרופיל, למשל https://www.linkedin.com/in/name. השדה אינו חובה." },
+  { name: "githubUrl", label: "פרופיל GitHub", type: "url", autoComplete: "off", hint: "קישור לפרופיל, למשל https://github.com/username. השדה אינו חובה." },
 ] as const;
 
 export function CandidateForm({ initialCandidate, canSave, onSave, onCancel }: {
@@ -24,6 +28,15 @@ export function CandidateForm({ initialCandidate, canSave, onSave, onCancel }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submitting = useRef(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>();
+  const uploaded = useRef<{ file: File; url: string } | null>(null);
+  useEffect(() => {
+    if (!photoFile) { setPreviewUrl(undefined); return; }
+    const url = URL.createObjectURL(photoFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,9 +50,21 @@ export function CandidateForm({ initialCandidate, canSave, onSave, onCancel }: {
       if (input instanceof HTMLInputElement) input.focus();
       return;
     }
+    if (issues.photoUrl) { setError(issues.photoUrl); return; }
+    if (photoFile) {
+      const issue = photoFileIssue(photoFile.name, photoFile.size);
+      if (issue) { setError(issue); return; }
+    }
     submitting.current = true;
     setSaving(true);
-    try { await onSave(candidatePayload(fields)); }
+    try {
+      const values = candidatePayload(fields);
+      if (photoFile) {
+        if (uploaded.current?.file !== photoFile) uploaded.current = { file: photoFile, url: await uploadCandidatePhoto(photoFile) };
+        values.photoUrl = uploaded.current.url;
+      }
+      await onSave(values);
+    }
     catch (cause: unknown) { setError(cause instanceof Error ? cause.message : "לא ניתן לשמור את המועמד. הנתונים שהזנת נשמרו בטופס."); }
     finally { submitting.current = false; setSaving(false); }
   }
@@ -59,6 +84,25 @@ export function CandidateForm({ initialCandidate, canSave, onSave, onCancel }: {
       <Text>מספר זהות הוא שדה חובה. יתר השדות הם רשות; אם מזינים אותם יש להשתמש בפורמט תקין.</Text>
       <fieldset className="nh-form-fields" disabled={saving || !canSave}>
         <legend className="nh-sr-only">פרטי המועמד</legend>
+        <div className="nh-profile-header">
+          <CandidatePhoto name={fields.fullName} photoUrl={fields.photoUrl} previewUrl={previewUrl} />
+          <Field label="תמונת מועמד — רשות" hint="תמונת JPG או PNG עד 2MB.">
+            <Input name="photoFile" type="file" accept={PHOTO_ACCEPT} aria-label="בחירת תמונת מועמד"
+              onChange={event => {
+                const file = event.target.files?.[0] ?? null;
+                const issue = file ? photoFileIssue(file.name, file.size) : undefined;
+                if (issue) event.currentTarget.value = "";
+                setError(issue ?? null);
+                setPhotoFile(issue ? null : file);
+                uploaded.current = null;
+              }} />
+            {(photoFile || fields.photoUrl) && <Button type="button" variant="secondary" onClick={event => {
+              const input = event.currentTarget.form?.elements.namedItem("photoFile");
+              if (input instanceof HTMLInputElement) input.value = "";
+              setPhotoFile(null); uploaded.current = null; setFields(previous => ({ ...previous, photoUrl: "" }));
+            }}>הסרת תמונה מהפרופיל</Button>}
+          </Field>
+        </div>
         <div className="nh-form-grid">
           {inputs.map(input => <Field key={input.name} label={input.label} hint={input.hint}>
             <Input id={prefix + "-" + input.name} name={input.name} aria-label={input.label}

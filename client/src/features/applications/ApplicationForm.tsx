@@ -8,13 +8,14 @@ import type { ReferenceOption } from "@/integrations/ReferenceDataProvider";
 import type { Application, Candidate } from "@/types/domain";
 import { applicationFields, applicationDetailsPayload, type ApplicationValues } from "./application-fields";
 
-export function ApplicationForm({ initialApplication, prefill, positions, companies, candidates, canSave, onSave, onCancel }: {
+export function ApplicationForm({ initialApplication, prefill, positions, companies, candidates, canSave, onSave, onCancel, lockPosition = false }: {
   initialApplication?: Application;
   prefill?: { positionId?: string; candidateId?: string };
   positions: readonly ReferenceOption[];
   companies: readonly ReferenceOption[];
   candidates: readonly Candidate[];
   canSave: boolean;
+  lockPosition?: boolean;
   onSave: (values: ApplicationValues) => Promise<void>;
   onCancel: () => void;
 }) {
@@ -34,6 +35,7 @@ export function ApplicationForm({ initialApplication, prefill, positions, compan
     let details: Omit<ApplicationValues, "resumeUrl">;
     try {
       details = applicationDetailsPayload(fields, initialApplication);
+      if (!initialApplication && (!fields.positionId || !fields.companyId || !fields.candidateId)) throw new Error("יש לבחור משרה, חברה ומועמד.");
       if (resumeFile) {
         const issue = resumeFileIssue(resumeFile.name, resumeFile.size);
         if (issue) throw new Error(issue);
@@ -72,15 +74,15 @@ export function ApplicationForm({ initialApplication, prefill, positions, compan
     <fieldset className="nh-form-fields" disabled={saving || !canSave}>
       <legend className="nh-sr-only">פרטי הגשה</legend>
       <div className="nh-form-grid">
-        <Field label="משרה"><Select name="positionId" id={prefix + "-position"} aria-label="משרה" value={fields.positionId}
+        <Field label="משרה"><Select name="positionId" id={prefix + "-position"} aria-label="משרה" disabled={lockPosition || Boolean(initialApplication)} value={fields.positionId}
           onChange={(event) => setFields({ ...fields, positionId: event.target.value })}>
           <ReferenceOptions options={positions} selected={fields.positionId} hasExisting={Boolean(initialApplication?.positionId)} label="בחרו משרה" />
         </Select></Field>
-        <Field label="מועמד"><Select name="candidateId" id={prefix + "-candidate"} aria-label="מועמד" value={fields.candidateId}
+        <Field label="מועמד"><Select name="candidateId" id={prefix + "-candidate"} aria-label="מועמד" disabled={Boolean(initialApplication)} value={fields.candidateId}
           onChange={(event) => setFields({ ...fields, candidateId: event.target.value })}>
           <ReferenceOptions options={candidateOptions} selected={fields.candidateId} hasExisting={Boolean(initialApplication?.candidateId)} label="בחרו מועמד" />
         </Select></Field>
-        <Field label="חברה"><Select name="companyId" id={prefix + "-company"} aria-label="חברה" value={fields.companyId}
+        <Field label="חברה"><Select name="companyId" id={prefix + "-company"} aria-label="חברה" disabled={Boolean(initialApplication)} value={fields.companyId}
           onChange={(event) => setFields({ ...fields, companyId: event.target.value })}>
           <ReferenceOptions options={companies} selected={fields.companyId} hasExisting={Boolean(initialApplication?.companyId)} label="בחרו חברה" />
         </Select></Field>

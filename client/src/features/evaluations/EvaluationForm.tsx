@@ -1,10 +1,10 @@
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Button, Card, Field, Heading, Input, Select, Text, Textarea } from "@ds/components";
 import { PageState } from "@/shared/PageState";
 import type { CriterionReference, EvaluationInput, EvaluationServices } from "@/integrations/EvaluationProvider";
 import { evaluationInput, previewLabel, type EvaluationFields } from "./evaluation-fields";
 
-export function EvaluationForm({ criteria, initialValues = [], interviewerName, canSave, previewScore, onSave, onCancel }: {
+export function EvaluationForm({ criteria, initialValues = [], interviewerName, canSave, previewScore, onSave, onCancel, onDirtyChange, onSavingChange }: {
   criteria: readonly CriterionReference[];
   initialValues?: readonly EvaluationInput[];
   interviewerName: string;
@@ -12,6 +12,8 @@ export function EvaluationForm({ criteria, initialValues = [], interviewerName, 
   previewScore?: EvaluationServices["previewScore"];
   onSave: (values: readonly EvaluationInput[]) => Promise<void>;
   onCancel: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  onSavingChange?: (saving: boolean) => void;
 }) {
   const prefix = useId();
   const [fields, setFields] = useState<Record<string, EvaluationFields>>(() => Object.fromEntries(initialValues.map(value => [value.criterionId, { value: String(value.actualValue), notes: value.notes ?? "" }])));
@@ -23,6 +25,9 @@ export function EvaluationForm({ criteria, initialValues = [], interviewerName, 
   const form = useRef<HTMLFormElement>(null);
   const editable = criteria.map((criterion) => ({ criterion, fields: fields[criterion._id] ?? { value: "", notes: "" } }));
   const changed = editable.filter(entry => dirty.has(entry.criterion._id));
+
+  useEffect(() => { onDirtyChange?.(dirty.size > 0); }, [dirty, onDirtyChange]);
+  useEffect(() => { onSavingChange?.(saving); }, [saving, onSavingChange]);
 
   function change(id: string, update: Partial<EvaluationFields>) {
     setDirty(previous => new Set([...previous, id]));

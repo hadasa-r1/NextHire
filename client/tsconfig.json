@@ -11,6 +11,7 @@
     "jsx": "react-jsx",
 
     "paths": {
+      "@process": ["../server/src/validation/process.mts"],
       "@scoring": ["../server/src/validation/scoring.mts"],
       "@evaluation-demo": ["../server/src/demo/evaluation-data.mts"],
       "@resume-policy": ["../server/src/validation/resume-file.mts"],

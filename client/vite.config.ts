@@ -9,6 +9,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      "@process": fileURLToPath(new URL("../server/src/validation/process.mts", import.meta.url)),
       "@scoring": fileURLToPath(new URL("../server/src/validation/scoring.mts", import.meta.url)),
       "@evaluation-demo": fileURLToPath(new URL("../server/src/demo/evaluation-data.mts", import.meta.url)),
       "@resume-policy": fileURLToPath(new URL("../server/src/validation/resume-file.mts", import.meta.url)),

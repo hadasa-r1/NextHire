@@ -47,7 +47,7 @@ test("Demo supplies selectable reference IDs without creating Group A models", a
     candidates={[{ _id: "507f1f77bcf86cd799439011", idNumber: "000000001" }]} canSave onSave={async () => {}} onCancel={() => {}} />);
   assert.match(html, /משרת פיתוח/);
   assert.doesNotMatch(html, /type="submit" disabled/);
-  assert.equal(demoCriteria(DEMO_POSITION_IDS[0]).length, 3);
+  assert.equal(demoCriteria(DEMO_POSITION_IDS[0]).length, 8);
   assert.equal(typeof demoEvaluationServices.saveEvaluations, "function");
   assert.equal(typeof demoEvaluationServices.previewScore, "function");
 });

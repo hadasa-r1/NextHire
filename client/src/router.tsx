@@ -1,18 +1,22 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
 import { Card } from "@ds/components";
 import DesignSystemPreview from "@ds/DesignSystemPreview";
-import { CandidatePoolPage } from "@/features/candidate-pool/CandidatePoolPage";
+import { candidatePoolDestination } from "@/features/applications/application-fields";
 import { CandidatesPage } from "@/features/candidates/CandidatesPage";
 import { CandidateFormPage } from "@/features/candidates/CandidateFormPage";
 import { CandidateDetailsPage } from "@/features/candidates/CandidateDetailsPage";
+import { PositionsPage } from "@/features/positions/PositionsPage";
 import { HomePage } from "@/features/home/HomePage";
 import { ApplicationsPage } from "@/features/applications/ApplicationsPage";
+import { ApplicationImportPage } from "@/features/applications/ApplicationImportPage";
 import { ApplicationFormPage } from "@/features/applications/ApplicationFormPage";
 import { ApplicationDetailsPage } from "@/features/applications/ApplicationDetailsPage";
 import { EvaluationPage } from "@/features/evaluations/EvaluationPage";
 import { TenderSummaryPage } from "@/features/tender-summary/TenderSummaryPage";
 import { PageLayout } from "@/shared/PageLayout";
 import { PageState } from "@/shared/PageState";
+
+function CandidatePoolPage() { return <Navigate replace to={candidatePoolDestination(useParams().positionId)} />; }
 
 function RouteErrorPage() {
   return <PageLayout title="לא ניתן להציג את הדף"><Card>
@@ -22,6 +26,9 @@ function RouteErrorPage() {
 
 export const router = createBrowserRouter([
   { path: "/", element: <HomePage />, errorElement: <RouteErrorPage /> },
+  { path: "/positions", element: <PositionsPage />, errorElement: <RouteErrorPage /> },
+  { path: "/positions/:positionId/import", element: <ApplicationImportPage />, errorElement: <RouteErrorPage /> },
+  { path: "/positions/:positionId/candidates", element: <ApplicationsPage />, errorElement: <RouteErrorPage /> },
   { path: "/candidates", element: <CandidatesPage />, errorElement: <RouteErrorPage /> },
   { path: "/candidates/new", element: <CandidateFormPage />, errorElement: <RouteErrorPage /> },
   { path: "/candidates/:candidateId/edit", element: <CandidateFormPage />, errorElement: <RouteErrorPage /> },

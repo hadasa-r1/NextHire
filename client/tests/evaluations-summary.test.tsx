@@ -46,7 +46,7 @@ test("Tender rows retain stored ranks, zero, false and missing summaries, exclud
     { _id: "s1", applicationId: a, rankPosition: 2, finalWeightedScore: 0, isWinner: false },
     { _id: "s2", applicationId: b, rankPosition: 1, isWinner: true },
     { _id: "other", applicationId: "unrelated", rankPosition: 0 },
-  ]);
+  ], true);
   assert.deepEqual(rows.map((row) => row.applicationId), [b, a, c]);
   assert.equal(rows[1]?.summary?.finalWeightedScore, 0);
   assert.equal(rows[1]?.summary?.isWinner, false);
@@ -117,8 +117,54 @@ test("Partial evaluation save stops, reports progress and retries with only perm
 });
 
 test("Legacy candidate-pool links preserve the position and discard untrusted process flags", async () => {
-  const { candidatePoolDestination } = await import("../src/features/candidate-pool/CandidatePoolPage");
-  assert.equal(candidatePoolDestination(a.toUpperCase()), "/applications?positionId=" + a);
-  assert.equal(candidatePoolDestination("../invalid?closed=1"), "/applications");
-  assert.equal(candidatePoolDestination(), "/applications");
+  const { candidatePoolDestination } = await import("../src/features/applications/application-fields");
+  assert.equal(candidatePoolDestination(a.toUpperCase()), "/positions/" + a + "/candidates");
+  assert.equal(candidatePoolDestination("../invalid?closed=1"), "/positions");
+  assert.equal(candidatePoolDestination(), "/positions");
+});
+
+test("Without lock confirmation, neither table cells nor row order disclose saved ranking", () => {
+  const summaries = [
+    { _id: "s1", applicationId: a, rankPosition: 2, finalWeightedScore: 0 },
+    { _id: "s2", applicationId: b, rankPosition: 1 },
+  ];
+  const rows = buildTenderRows([{ _id: a, resumeUrl: "a" }, { _id: b, resumeUrl: "b" }], summaries);
+  assert.deepEqual(rows.map(row => row.applicationId), [a, b]);
+  assert.ok(rows.every(row => row.summary?.rankPosition === undefined));
+  assert.equal(rows[0]?.summary?.finalWeightedScore, 0);
+  assert.equal(summaries[0]?.rankPosition, 2);
+});
+
+test("A position's tender shows every application even with no saved TenderSummary", async (t) => {
+  const { loadTenderRows } = await import("../src/features/tender-summary/useTenderSummary");
+  const position = a;
+  const calls: string[] = [];
+  t.mock.method(globalThis, "fetch", async (url: string) => {
+    calls.push(url);
+    if (url === "/api/applications?positionId=" + position + "&populate=candidateId")
+      return Response.json([
+        { _id: b, positionId: position, candidateId: { _id: c, idNumber: "123456789", fullName: "מועמד לבדיקה" }, resumeUrl: "https://example.com/cv", hourlyRateBid: 0, passedThreshold: false },
+        { _id: c, positionId: position, resumeUrl: "https://example.com/cv" },
+        { _id: "other", positionId: b, resumeUrl: "https://example.com/cv" },
+      ]);
+    assert.ok(url === "/api/tender-summaries?applicationId=" + b || url === "/api/tender-summaries?applicationId=" + c);
+    return Response.json([]);
+  });
+  const rows = await loadTenderRows(position, true, new AbortController().signal);
+  assert.deepEqual(rows.map(row => row.applicationId), [b, c]);
+  assert.ok(rows.every(row => row.summary === undefined));
+  assert.equal(calls.length, 3);
+  const html = renderToStaticMarkup(<TenderSummaryTable rows={rows} onDetails={() => {}} />);
+  assert.match(html, /מועמד לבדיקה/);
+  assert.match(html, /טרם נקבע/);
+  assert.equal([...html.matchAll(/<tbody>[\s\S]*?<\/tbody>/g)].length, 1);
+});
+
+test("Stage references reject duplicates and stages from a different position", async () => {
+  const { validateStages } = await import("../src/integrations/EvaluationProvider");
+  const stage = { _id: a, positionId: b, name: "ראיון", order: 2 };
+  assert.equal(validateStages([stage], b)[0]?.name, "ראיון");
+  assert.throws(() => validateStages([stage], c));
+  assert.throws(() => validateStages([stage, stage], b));
+  assert.throws(() => validateStages([{ ...stage, order: "first" }], b));
 });

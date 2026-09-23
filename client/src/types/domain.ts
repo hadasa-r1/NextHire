@@ -10,6 +10,9 @@ export interface Candidate {
   idNumber: string;
   phone?: string;
   email?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  photoUrl?: string;
 }
 
 export interface Application {
