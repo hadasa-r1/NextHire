@@ -7,7 +7,8 @@ import {
   buildXlsx, columnName, sheetNames, xlsxFileName,
 } from "../src/shared/xlsx-export";
 import {
-  buildMatrixSheet, buildSummarySheet, tenderExportTitle,
+  buildMatrixSheet, buildSummarySheet, criterionCell, criterionDisplay, criterionHeader, formatPercent, methodLabel,
+  percentOfMax, tenderExportTitle,
   type MatrixApplication, type TenderMatrixData,
 } from "../src/features/tender-summary/tender-export";
 import { TenderSummaryTable } from "../src/features/tender-summary/TenderSummaryTable";
@@ -21,7 +22,8 @@ const stageId = "507f1f77bcf86cd799439031";
 
 const critBoolean: CriterionReference = { _id: "507f1f77bcf86cd799439021", type: "BOOLEAN", name: "תנאי סף", stageId };
 const critRatio: CriterionReference = { _id: "507f1f77bcf86cd799439022", type: "SCORED", scoringMethod: "RATIO", name: "ראיון", stageId, targetValue: 10 };
-const critDirect: CriterionReference = { _id: "507f1f77bcf86cd799439023", type: "SCORED", scoringMethod: "DIRECT", name: "מבחן" };
+// maxScore: 10 so a DIRECT score of 0 exercises "0% is not empty" inside the main fixture.
+const critDirect: CriterionReference = { _id: "507f1f77bcf86cd799439023", type: "SCORED", scoringMethod: "DIRECT", name: "מבחן", maxScore: 10 };
 const stage: StageReference = { _id: stageId, positionId: posA, name: "ראיון טלפוני", order: 1, weightPercent: 30 };
 
 const applications: MatrixApplication[] = [
@@ -63,19 +65,79 @@ test("The matrix export mirrors the screen's column order, including missing cri
   assert.equal(sheet.name, "מפ״ל מפורט");
   assert.deepEqual(sheet.header, [
     "חברה", "שם מועמד", "ת״ז", "עמידה בסף",
-    "מבחן (ציון ישיר)",
+    "מבחן · אחוז (ציון מתוך 10)",
     "ראיון טלפוני · 30% — תנאי סף",
-    "ראיון טלפוני · 30% — ראיון (ערך / ציון מחושב)",
+    "ראיון טלפוני · 30% — ראיון · ערך / אחוז מהיעד",
     "תעריף שעתי", "ציון סופי", "החלטה",
   ]);
 });
 
-test("Real zeros and false survive export; missing evaluations and a rejected final score become empty cells", () => {
+test("DIRECT criterion scores export as a percent of maxScore; zero and false still survive; missing and rejected stay empty", () => {
   const sheet = buildMatrixSheet(data, rows, companyLabel);
-  assert.deepEqual(sheet.rows[0], ["חברה א", "מועמד א", "123456789", "עבר", 0, "עבר", "8 / 80", 0, 0, "טרם נקבעה"]);
+  assert.deepEqual(sheet.rows[0], ["חברה א", "מועמד א", "123456789", "עבר", { percent: 0 }, "עבר", "8 / 80%", 0, 0, "טרם נקבעה"]);
   assert.deepEqual(sheet.rows[1], ["חברה ב", "מועמד ב", "007123456", "לא עבר", undefined, "לא עבר", undefined, undefined, "טרם חושב", "טרם נקבעה"]);
   // app3 has a saved finalWeightedScore (99) but was rejected: the export must not leak it.
   assert.deepEqual(sheet.rows[2], ["חברה א", "מועמד ג", "555555555", "טרם אושר", undefined, "עבר", "כמה הערכות — נדרש בירור", undefined, undefined, "פסילה כפולה"]);
+});
+
+test("DIRECT scores convert to a percent of maxScore, on screen and in the sheet, with the divisor being the maximum only", () => {
+  const scale10: CriterionReference = { _id: "c1", type: "SCORED", scoringMethod: "DIRECT", maxScore: 10 };
+  const score3: MatrixApplication = { applicationId: "a", scores: [{ criterionId: "c1", actualValue: 3, computedScore: 3 }] };
+  const score7: MatrixApplication = { applicationId: "a", scores: [{ criterionId: "c1", actualValue: 7, computedScore: 7 }] };
+  assert.deepEqual(criterionCell(scale10, score3), { percent: 0.3 });
+  assert.equal(criterionDisplay(criterionCell(scale10, score3)), "30%");
+  assert.deepEqual(criterionCell(scale10, score7), { percent: 0.7 });
+  assert.equal(criterionDisplay(criterionCell(scale10, score7)), "70%");
+
+  const scale5: CriterionReference = { _id: "c2", type: "SCORED", scoringMethod: "DIRECT", maxScore: 5 };
+  const score4of5: MatrixApplication = { applicationId: "a", scores: [{ criterionId: "c2", actualValue: 4, computedScore: 4 }] };
+  assert.equal(criterionDisplay(criterionCell(scale5, score4of5)), "80%");
+});
+
+test("A zero DIRECT score with a valid maxScore is 0%, never an empty cell", () => {
+  const scale5: CriterionReference = { _id: "c2", type: "SCORED", scoringMethod: "DIRECT", maxScore: 5 };
+  const zero: MatrixApplication = { applicationId: "a", scores: [{ criterionId: "c2", actualValue: 0, computedScore: 0 }] };
+  const cell = criterionCell(scale5, zero);
+  assert.notEqual(cell, undefined);
+  assert.deepEqual(cell, { percent: 0 });
+  assert.equal(criterionDisplay(cell), "0%");
+});
+
+test("DIRECT without a usable maxScore shows the raw score, unchanged, and the header says so instead of guessing a scale", () => {
+  const noMax: CriterionReference = { _id: "c3", type: "SCORED", scoringMethod: "DIRECT", name: "מבחן" };
+  const detail: MatrixApplication = { applicationId: "a", scores: [{ criterionId: "c3", actualValue: 7, computedScore: 7 }] };
+  assert.equal(criterionCell(noMax, detail), 7);
+  assert.equal(criterionDisplay(criterionCell(noMax, detail)), "7");
+  assert.equal(methodLabel(noMax), "ציון ישיר (לא הוגדר ציון מרבי)");
+  assert.match(criterionHeader(noMax, []), /לא הוגדר ציון מרבי/);
+  // A maxScore of 0, negative or non-finite is not a usable scale either.
+  assert.equal(percentOfMax(5, 0), undefined);
+  assert.equal(percentOfMax(5, -10), undefined);
+  assert.equal(percentOfMax(5, Number.NaN), undefined);
+  assert.equal(percentOfMax(5, undefined), undefined);
+});
+
+test("RATIO shows the actual value over the server's already-computed percent, rounded for display and never divided again or capped", () => {
+  const ratio: CriterionReference = { _id: "c4", type: "SCORED", scoringMethod: "RATIO", targetValue: 6 };
+  const rounding: MatrixApplication = { applicationId: "a", scores: [{ criterionId: "c4", actualValue: 4, computedScore: 200 / 3 }] };
+  assert.equal(criterionCell(ratio, rounding), "4 / 67%");
+  const over100: MatrixApplication = { applicationId: "a", scores: [{ criterionId: "c4", actualValue: 9, computedScore: 150 }] };
+  assert.equal(criterionCell(ratio, over100), "9 / 150%");
+  assert.equal(methodLabel(ratio), "ערך / אחוז מהיעד");
+});
+
+test("A missing evaluation stays '—'; multiple evaluations keep their unchanged message; BOOLEAN is unaffected", () => {
+  const scored: CriterionReference = { _id: "c5", type: "SCORED", scoringMethod: "DIRECT", maxScore: 10 };
+  assert.equal(criterionDisplay(criterionCell(scored, undefined)), "—");
+  const dup: MatrixApplication = { applicationId: "a", scores: [
+    { criterionId: "c5", actualValue: 1, computedScore: 1 }, { criterionId: "c5", actualValue: 2, computedScore: 2 },
+  ] };
+  assert.equal(criterionCell(scored, dup), "כמה הערכות — נדרש בירור");
+  assert.equal(criterionDisplay(criterionCell(scored, dup)), "כמה הערכות — נדרש בירור");
+  const boolean: CriterionReference = { _id: "c6", type: "BOOLEAN" };
+  const passed: MatrixApplication = { applicationId: "a", scores: [{ criterionId: "c6", actualValue: true }] };
+  assert.equal(criterionCell(boolean, passed), "עבר");
+  assert.equal(methodLabel(boolean), undefined);
 });
 
 test("The summary sheet has no action column and still preserves zero scores", () => {
@@ -99,6 +161,17 @@ test("buildXlsx rejects an empty sheet list and an oversized sheet", () => {
     () => buildXlsx([{ name: "x", header: ["a"], rows: Array.from({ length: 100_001 }, () => ["v"]) }]),
     /מספר השורות חורג/,
   );
+});
+
+test("A percent cell is written as a real numeric cell with the built-in percent number format", () => {
+  const bytes = buildXlsx([{ name: "אחוזים", header: ["ציון"], rows: [[{ percent: 0.3 }], [{ percent: 0 }], [null]] }]);
+  const files = unzipSync(bytes);
+  const worksheet = strFromU8(files["xl/worksheets/sheet1.xml"]!);
+  assert.match(worksheet, /<c r="A2" s="2"><v>0\.3<\/v><\/c>/);
+  assert.match(worksheet, /<c r="A3" s="2"><v>0<\/v><\/c>/);
+  assert.doesNotMatch(worksheet, /r="A4"/);
+  const styles = strFromU8(files["xl/styles.xml"]!);
+  assert.match(styles, /numFmtId="9"[^>]*applyNumberFormat="1"/);
 });
 
 test("The generated workbook is RTL, frozen, filterable, contains no formulas, and keeps ID leading zeros as text", () => {
@@ -134,6 +207,12 @@ test("XML control characters and markup are stripped or escaped, not left to bre
   const worksheet = strFromU8(unzipSync(bytes)["xl/worksheets/sheet1.xml"]!);
   assert.doesNotMatch(worksheet, /\u0007/);
   assert.match(worksheet, /&lt;script&gt;&amp;bad&lt;\/script&gt;/);
+});
+
+test("formatPercent rounds to a whole percent", () => {
+  assert.equal(formatPercent(1 / 3), "33%");
+  assert.equal(formatPercent(0), "0%");
+  assert.equal(formatPercent(1), "100%");
 });
 
 test("columnName is 0-indexed and wraps like spreadsheet columns", () => {

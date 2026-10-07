@@ -4,7 +4,7 @@ import { PageState } from "@/shared/PageState";
 import { useReferenceOptions } from "@/integrations/ReferenceDataProvider";
 import { TenderExportButton } from "./TenderExportButton";
 import {
-  buildMatrixSheet, criterionCell, finalScoreCell, matchingScores, orderedColumns, thresholdLabel,
+  buildMatrixSheet, criterionCell, criterionDisplay, finalScoreCell, matchingScores, methodLabel, orderedColumns, thresholdLabel,
   type TenderMatrixData,
 } from "./tender-export";
 import type { TenderRow } from "./tender-rows";
@@ -23,9 +23,9 @@ export function TenderMatrix({ positionId, rows, onDetails, exportTitle }: {
       buildSheet={() => buildMatrixSheet(result.data, rows, companyLabel)} />
     <div className="nh-table-region nh-matrix" role="region" aria-label="מפ״ל מפורט לפי קריטריונים" tabIndex={0}><Table>
       <thead><tr><th>חברה</th><th>שם מועמד</th><th>ת״ז</th><th>עמידה בסף</th>
-        {criteria.map(c => { const stage = stages.find(s => s._id === c.stageId); return <th key={c._id}>
+        {criteria.map(c => { const stage = stages.find(s => s._id === c.stageId); const method = methodLabel(c); return <th key={c._id}>
           {stage?.name && <div>{stage.name}{stage.weightPercent !== undefined ? " · " + stage.weightPercent + "%" : ""}</div>}
-          <div>{c.name || c._id}</div>{c.type === "SCORED" && <div>{c.scoringMethod === "RATIO" ? "ערך / ציון מחושב" : "ציון ישיר"}</div>}
+          <div>{c.name || c._id}</div>{method && <div>{method}</div>}
         </th>; })}
         <th>תעריף שעתי</th><th>ציון סופי</th><th>החלטה</th><th>פעולה</th></tr></thead>
       <tbody>{rows.map(row => {
@@ -34,8 +34,13 @@ export function TenderMatrix({ positionId, rows, onDetails, exportTitle }: {
           <td>{row.candidate}</td><td><bdi>{detail?.idNumber ?? "—"}</bdi></td><td>{thresholdLabel(detail)}</td>
           {criteria.map(c => {
             const scores = matchingScores(c, detail);
-            const notes = scores.length === 1 ? scores[0]?.notes : undefined;
-            return <td key={c._id} title={notes}>{criterionCell(c, detail) ?? "—"}</td>;
+            const single = scores.length === 1 ? scores[0] : undefined;
+            const value = criterionCell(c, detail);
+            // When shown as a percent, keep the original score visible in the tooltip.
+            const scoreHint = typeof value === "object" && single?.computedScore !== undefined
+              ? "ציון " + single.computedScore + " מתוך " + c.maxScore : undefined;
+            const title = [scoreHint, single?.notes].filter(Boolean).join(" · ") || undefined;
+            return <td key={c._id} title={title}>{criterionDisplay(value)}</td>;
           })}
           <td>{detail?.hourlyRateBid ?? "—"}</td><td>{finalScoreCell(detail, row) ?? "—"}</td>
           <td>{detail?.rejectionReason ? <Text>{detail.rejectionReason}</Text> : row.summary?.isWinner ? <Badge tone="success">זוכה</Badge> : "טרם נקבעה"}</td>

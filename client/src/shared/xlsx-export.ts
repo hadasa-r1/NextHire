@@ -6,7 +6,9 @@
 
 import { zipSync, strToU8 } from "fflate";
 
-export type XlsxCell = string | number | boolean | null | undefined;
+// { percent } holds a fraction (0.3, not 30) written as a real percent-formatted
+// numeric cell, so Excel keeps full precision while displaying "30%".
+export type XlsxCell = string | number | boolean | { percent: number } | null | undefined;
 
 export interface XlsxSheet {
   name: string;
@@ -187,6 +189,9 @@ function workbookXml(names: readonly string[], sheets: readonly XlsxSheet[]): st
 
 // ---------- xl/styles.xml ----------
 // Style 0: default. Style 1: bold header with a light fill and wrapped text.
+// Style 2: percent (built-in numFmtId 9 = "0%"), used for { percent } cells.
+
+const PERCENT_STYLE = 2;
 
 const STYLES_XML =
   XML_DECL +
@@ -202,14 +207,22 @@ const STYLES_XML =
   "</fills>" +
   '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
   '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-  '<cellXfs count="2">' +
+  '<cellXfs count="3">' +
   '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
   '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment wrapText="1"/></xf>' +
+  '<xf numFmtId="9" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
   "</cellXfs>" +
   '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
   "</styleSheet>";
 
 // ---------- xl/worksheets/sheetN.xml ----------
+
+// Text used only to size the column; the percent cell itself keeps its exact fraction.
+function cellText(value: XlsxCell): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "object") return Math.round(value.percent * 100) + "%";
+  return String(value);
+}
 
 function columnWidths(sheet: XlsxSheet): number[] {
   return sheet.header.map((label, column) => {
@@ -217,7 +230,7 @@ function columnWidths(sheet: XlsxSheet): number[] {
     for (const row of sheet.rows) {
       const value = row[column];
       if (value === null || value === undefined || value === "") continue;
-      widest = Math.max(widest, displayWidth(String(value)));
+      widest = Math.max(widest, displayWidth(cellText(value)));
     }
     return Math.min(60, Math.max(10, widest + 2));
   });
@@ -227,15 +240,19 @@ function displayWidth(text: string): number {
   return [...text].length;
 }
 
-function cellXml(ref: string, value: XlsxCell, style?: 1): string {
-  const styleAttr = style ? ` s="${style}"` : "";
+function cellXml(ref: string, value: XlsxCell, headerStyle?: 1): string {
   if (value === null || value === undefined || value === "") return "";
+  const styleAttr = headerStyle ? ` s="${headerStyle}"` : "";
   if (typeof value === "number") {
     if (!Number.isFinite(value)) return "";
     return `<c r="${ref}"${styleAttr}><v>${value}</v></c>`;
   }
   if (typeof value === "boolean") {
     return `<c r="${ref}"${styleAttr} t="b"><v>${value ? 1 : 0}</v></c>`;
+  }
+  if (typeof value === "object") {
+    if (!Number.isFinite(value.percent)) return "";
+    return `<c r="${ref}" s="${PERCENT_STYLE}"><v>${value.percent}</v></c>`;
   }
   const text = stripIllegalXmlChars(value);
   if (text === "") return "";
