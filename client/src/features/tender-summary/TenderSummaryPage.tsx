@@ -48,8 +48,8 @@ function TenderSummaryContent({ positionId }: { positionId: string }) {
       <Heading level={2}>{title || "סיכום הגשות למשרה"}</Heading>
       {!title && <Text>מזהה משרה: <bdi>{positionId}</bdi></Text>}
       {missing > 0 && <PageState message={missing === result.data.length ? "המועמדים מוצגים לפי ההגשות למשרה. ציוני הסיכום טרם חושבו." : "לחלק מההגשות עדיין לא נשמר סיכום מפ״ל."} />}
-      {can("EvaluationScore", "READ") && can("Candidate", "READ") ? <TenderMatrix positionId={positionId} rows={result.data} onDetails={row => setSelectedId(row.applicationId)} />
-        : <TenderSummaryTable rows={result.data} onDetails={(row) => setSelectedId(row.applicationId)} />}
+      {can("EvaluationScore", "READ") && can("Candidate", "READ") ? <TenderMatrix positionId={positionId} rows={result.data} onDetails={row => setSelectedId(row.applicationId)} exportTitle={title} />
+        : <TenderSummaryTable rows={result.data} onDetails={(row) => setSelectedId(row.applicationId)} exportTitle={title} />}
       <Text>הדירוג מוסתר עד לחיבור בדיקת נעילת הציונים. אישור זוכה דורש מפ״ל סופי ונעול והרשאה מתאימה.</Text>
     </section></Card>
     <details>

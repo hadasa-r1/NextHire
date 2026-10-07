@@ -9,7 +9,7 @@
         "build": "tsc --noEmit && vite build",
         "preview": "vite preview",
         "typecheck": "tsc --noEmit",
-        "test": "tsx --tsconfig tsconfig.json --test tests/candidates.test.tsx tests/applications.test.tsx tests/evaluations-summary.test.tsx tests/demo.test.tsx tests/resume-upload.test.ts tests/import-workbook.test.ts"
+        "test": "tsx --tsconfig tsconfig.json --test tests/candidates.test.tsx tests/applications.test.tsx tests/evaluations-summary.test.tsx tests/demo.test.tsx tests/resume-upload.test.ts tests/import-workbook.test.ts tests/tender-export.test.tsx"
     },
     "dependencies": {
         "fflate": "^0.8.3",
